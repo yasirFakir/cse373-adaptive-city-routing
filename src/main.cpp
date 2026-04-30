@@ -42,6 +42,8 @@ PathResult results[3];
 bool pathFound = false;
 bool isDarkMode = false;
 int tableMode = 0; 
+float lastCanvasW = 1440.0f;
+float lastCanvasH = 900.0f * 0.55f;
 
 enum class CreationType { ROAD, METRO, BUS };
 static CreationType currentCreationType = CreationType::ROAD;
@@ -59,7 +61,8 @@ extern "C" {
     EMSCRIPTEN_KEEPALIVE
     void on_file_uploaded() {
         if (cityGraph.loadFromFile("/uploaded_map.txt")) {
-            cityGraph.applyCircleLayout(1440/2, 900*0.55/2, 250.0f);
+            float radius = std::min(lastCanvasW, lastCanvasH) * 0.35f;
+            cityGraph.applyCircleLayout(lastCanvasW/2, lastCanvasH/2, radius);
             pathFound = false;
         }
     }
@@ -130,7 +133,8 @@ void TriggerWasmUpload() {
     std::string p = FileDialog(false);
     if (!p.empty()) {
         if (cityGraph.loadFromFile(p)) {
-            cityGraph.applyCircleLayout(1440/2, 900*0.55/2, 250.0f);
+            float radius = std::min(lastCanvasW, lastCanvasH) * 0.35f;
+            cityGraph.applyCircleLayout(lastCanvasW/2, lastCanvasH/2, radius);
             pathFound = false;
         }
     }
@@ -226,7 +230,10 @@ void DrawGraph(ImDrawList* drawList, ImVec2 offset, ImVec2 size) {
         bool hovered = sqrt(pow(mousePos.x - p.x, 2) + pow(mousePos.y - p.y, 2)) < radius;
         if (hovered && ImGui::IsMouseDown(0) && draggingEdgeFrom == -1 && draggedNode == -1) draggedNode = id;
         if (hovered && ImGui::IsMouseDown(1) && draggingEdgeFrom == -1) draggingEdgeFrom = id;
-        if (draggedNode == id) { pos.x = mousePos.x - offset.x; pos.y = mousePos.y - offset.y; }
+        if (draggedNode == id) { 
+            pos.x = std::max(22.0f, std::min(size.x - 22.0f, mousePos.x - offset.x)); 
+            pos.y = std::max(22.0f, std::min(size.y - 22.0f, mousePos.y - offset.y)); 
+        }
         if (hovered && mouseClicked) { selectedNode = id; selectedEdge = {-1, -1}; }
         ImU32 circleColor = (isDarkMode ? IM_COL32(50, 50, 60, 255) : IM_COL32(240, 240, 240, 255));
         std::string label = Graph::idToLabel(id);
@@ -276,6 +283,8 @@ void main_loop() {
     bool isMobile = ImGui::GetIO().DisplaySize.x < 768.0f;
     float canvasH = ImGui::GetIO().DisplaySize.y * (isMobile ? 0.45f : 0.55f);
     float canvasW = ImGui::GetIO().DisplaySize.x;
+    lastCanvasW = canvasW;
+    lastCanvasH = canvasH;
     
     ImGui::BeginChild("GraphArea", ImVec2(0, canvasH), true, ImGuiWindowFlags_NoScrollbar);
     ImVec2 childPos = ImGui::GetCursorScreenPos(); DrawGraph(ImGui::GetWindowDrawList(), childPos, ImVec2(canvasW, canvasH));
@@ -302,7 +311,13 @@ void main_loop() {
                 ImGui::Separator();
                 ImGui::InputText("Start", startLabel, 16); ImGui::InputText("End", endLabel, 16);
                 ImGui::Separator();
-                if (ImGui::Button("IMPORT", ImVec2(120, 30))) { ImGui::OpenPopup("Select Map"); }
+                if (ImGui::Button("IMPORT", ImVec2(120, 30))) {
+#ifdef __EMSCRIPTEN__
+                    TriggerWasmUpload();
+#else
+                    ImGui::OpenPopup("Select Map");
+#endif
+                }
                 if (ImGui::Button("STORE", ImVec2(120, 30))) { TriggerWasmDownload(); ImGui::CloseCurrentPopup(); }
                 ImGui::Separator();
                 ImGui::Text("Filters:");
@@ -318,7 +333,13 @@ void main_loop() {
                 ImGui::EndPopup();
             }
         } else {
-            if (ImGui::Button("IMPORT", ImVec2(140, 30))) { ImGui::OpenPopup("Select Map"); }
+            if (ImGui::Button("IMPORT", ImVec2(140, 30))) {
+#ifdef __EMSCRIPTEN__
+                TriggerWasmUpload();
+#else
+                ImGui::OpenPopup("Select Map");
+#endif
+            }
             if (ImGui::Button("STORE", ImVec2(140, 30))) {
 #ifdef __EMSCRIPTEN__
                 TriggerWasmDownload();
@@ -363,7 +384,7 @@ void main_loop() {
     if (ImGui::BeginPopup("Select Map")) {
 #if !defined(__EMSCRIPTEN__) && !defined(EMSCRIPTEN)
         const char* maps[] = { "assets/city_map.txt", "assets/circular_map.txt", "assets/grid_map.txt", "assets/test.txt" };
-        for (int i = 0; i < 4; i++) if (ImGui::Selectable(maps[i])) { if (cityGraph.loadFromFile(maps[i])) { cityGraph.applyCircleLayout(canvasW/2, canvasH/2, 200.0f); pathFound = false; } }
+        for (int i = 0; i < 4; i++) if (ImGui::Selectable(maps[i])) { if (cityGraph.loadFromFile(maps[i])) { float r = std::min(canvasW, canvasH) * 0.35f; cityGraph.applyCircleLayout(canvasW/2, canvasH/2, r); pathFound = false; } }
         ImGui::Separator();
 #endif
         if (ImGui::Selectable("UPLOAD FROM PC (.txt)")) { TriggerWasmUpload(); }
@@ -457,7 +478,7 @@ int main(int, char**) {
 #else
     cityGraph.loadFromFile("assets/city_map.txt");
 #endif
-    cityGraph.applyCircleLayout(1440/2, 900*0.55/2, 250.0f);
+    cityGraph.applyCircleLayout(lastCanvasW/2, lastCanvasH/2, std::min(lastCanvasW, lastCanvasH) * 0.35f);
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(main_loop, 0, 1);
 #else
