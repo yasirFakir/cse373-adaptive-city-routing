@@ -38,19 +38,17 @@ if(EMSCRIPTEN)
     add_executable(CSE373-Adaptive-City-Routing ${SOURCES} ${IMGUI_SOURCES})
     set_target_properties(CSE373-Adaptive-City-Routing PROPERTIES SUFFIX ".js")
     
-    # Emscripten requires these flags for both compiling and linking
-    set(EMSCRIPTEN_FLAGS
-        "-s USE_SDL=2"
-        "-s USE_WEBGL2=1"
-        "-s FULL_ES3=1"
-        "-s WASM=1"
-        "-s ALLOW_MEMORY_GROWTH=1"
-        "-s NO_EXIT_RUNTIME=1"
-    )
-
-    target_compile_options(CSE373-Adaptive-City-Routing PRIVATE ${EMSCRIPTEN_FLAGS})
+    # Flags needed for BOTH compiling (for headers) and linking
+    target_compile_options(CSE373-Adaptive-City-Routing PRIVATE "-sUSE_SDL=2")
+    
+    # Flags strictly for the Linker
     target_link_options(CSE373-Adaptive-City-Routing PRIVATE 
-        ${EMSCRIPTEN_FLAGS}
+        "-sUSE_SDL=2"
+        "-sUSE_WEBGL2=1"
+        "-sFULL_ES3=1"
+        "-sWASM=1"
+        "-sALLOW_MEMORY_GROWTH=1"
+        "-sNO_EXIT_RUNTIME=1"
         "--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/assets@/assets"
     )
     
