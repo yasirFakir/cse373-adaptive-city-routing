@@ -370,9 +370,6 @@ void main_loop() {
                     ImGui::OpenPopup("Select Map");
 #endif
                 }
-                if (ImGui::Button("SAMPLES", ImVec2(120, 30))) {
-                    ImGui::OpenPopup("Select Map");
-                }
                 if (ImGui::Button("STORE", ImVec2(120, 30))) { TriggerWasmDownload(); ImGui::CloseCurrentPopup(); }
                 ImGui::Separator();
                 ImGui::Text("Node Filters:");
@@ -395,9 +392,6 @@ void main_loop() {
 #else
                 ImGui::OpenPopup("Select Map");
 #endif
-            }
-            if (ImGui::Button("SAMPLES", ImVec2(140, 30))) {
-                ImGui::OpenPopup("Select Map");
             }
             if (ImGui::Button("STORE", ImVec2(140, 30))) {
 #ifdef __EMSCRIPTEN__
