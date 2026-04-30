@@ -1,36 +1,25 @@
 # CSE373-Adaptive-City-Routing
 
-An efficient C++ based routing engine designed to find optimal paths in a city graph based on different modes (e.g., shortest distance, fastest time). This project utilizes Dijkstra's algorithm and is designed for cross-platform compatibility, including a WebAssembly build for web-based interaction.
-
-## Project Structure
-
-- `src/`: Core C++ source files implementing the graph data structures and routing algorithms.
-  - `graph.h`: Graph class definitions and node/edge structures.
-  - `graph.cpp`: Implementation of graph construction from input data.
-  - `algorithms.cpp`: Dijkstra's algorithm implementation with multi-mode logic.
-  - `main.cpp`: Entry point for CLI and ImGui-based user interface.
-- `assets/`: Static resources including the city map data and project specifications.
-- `web/`: Build artifacts for WebAssembly, allowing the project to run in a browser.
-- `docs/`: Technical documentation and algorithm walkthroughs.
-- `CMakeLists.txt`: Build configuration for C++ compilers and Emscripten.
+An efficient C++ based routing engine designed to find optimal paths in a city graph based on different modes (Shortest Distance, Fastest Time). This project features an interactive GUI built with **Dear ImGui** and is cross-platform compatible, including **WebAssembly** support.
 
 ## Features
+- **Interactive GUI**: User-friendly interface for inputting nodes and selecting modes.
+- **Dijkstra's Algorithm**: High-performance routing logic.
+- **Multi-Mode**: Optimize for distance or travel time.
+- **Cross-Platform**: Runs natively on Linux, Windows, and in the Browser.
 
-- **Multi-Mode Routing**: Find paths based on distance or time.
-- **Efficient Graph Processing**: Optimized Dijkstra implementation for performance.
-- **Cross-Platform**: Compiles to native binaries and WebAssembly.
-- **Interactive UI**: Integrated with Dear ImGui for a visual experience (optional/web).
+---
 
-## Getting Started
+## Build Instructions: Arch Linux
 
-### Prerequisites
+### 1. Install Dependencies
+Arch Linux requires the `base-devel` group and specific libraries for SDL2 and OpenGL.
+```bash
+sudo pacman -Syu
+sudo pacman -S base-devel cmake sdl2 mesa
+```
 
-- CMake (3.10 or higher)
-- C++17 compliant compiler (GCC, Clang, or MSVC)
-- [Optional] Emscripten SDK for WebAssembly builds
-
-### Build Instructions
-
+### 2. Build the Project
 ```bash
 mkdir build
 cd build
@@ -38,12 +27,60 @@ cmake ..
 make
 ```
 
-### Running the Application
-
+### 3. Run
 ```bash
-./CityRouting
+./CSE373-Adaptive-City-Routing
 ```
 
-## License
+---
 
-This project is developed for educational purposes as part of the CSE373 course.
+## Build Instructions: Windows
+
+### 1. Prerequisites
+- **Visual Studio 2022**: Install the "Desktop development with C++" workload.
+- **CMake**: Download and install from [cmake.org](https://cmake.org/download/).
+- **SDL2**:
+  - Download the `SDL2-devel-2.x.x-VC.zip` from the [SDL GitHub releases](https://github.com/libsdl-org/SDL/releases).
+  - Extract it to a known location (e.g., `C:/Libraries/SDL2`).
+
+### 2. Build via Command Prompt (Developer PowerShell/CMD)
+```powershell
+mkdir build
+cd build
+# Tell CMake where to find SDL2
+cmake .. -DSDL2_DIR="C:/path/to/SDL2/cmake"
+cmake --build . --config Release
+```
+
+### 3. Build via Visual Studio UI
+1. Open Visual Studio.
+2. Select "Open a local folder" and choose the project root.
+3. Visual Studio will automatically detect `CMakeLists.txt`.
+4. Right-click `CMakeLists.txt` -> "Build".
+5. Press the "Start" (Green Arrow) button to run.
+
+---
+
+## Build Instructions: WebAssembly (Wasm)
+
+Requires the [Emscripten SDK (emsdk)](https://emscripten.org/docs/getting_started/downloads.html).
+
+```bash
+mkdir build_wasm
+cd build_wasm
+emcmake cmake ..
+make
+cp CSE373-Adaptive-City-Routing.* ../web/
+```
+Then, serve the `web/` directory using any local server (e.g., `python -m http.server`).
+
+---
+
+## Project Structure
+- `src/`: Core C++ logic and GUI implementation.
+- `assets/`: Graph data (`city_map.txt`) and project PDF.
+- `web/`: WebAssembly entry point and hosting files.
+- `docs/`: Technical documentation and algorithm details.
+
+## License
+Educational project for the CSE373 course.
