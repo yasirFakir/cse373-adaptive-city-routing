@@ -83,25 +83,27 @@ std::string FileDialog(bool save) {
 
 void TriggerWasmDownload() {
 #ifdef __EMSCRIPTEN__
-    if (cityGraph.saveToFile("map_save.txt")) {
+    if (cityGraph.saveToFile("/map_save.txt")) {
         emscripten_run_script(R"(
             (function() {
                 try {
-                    const content = FS.readFile('map_save.txt');
-                    const blob = new Blob([content], { type: 'text/plain' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
+                    var data = FS.readFile('/map_save.txt');
+                    var blob = new Blob([data], {type: 'text/plain'});
+                    var url = window.URL.createObjectURL(blob);
+                    var a = document.createElement('a');
                     a.href = url;
                     a.download = 'city_map.txt';
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                } catch (e) {
-                    console.error("Download failed:", e);
+                    window.URL.revokeObjectURL(url);
+                } catch(e) {
+                    alert("Download failed: " + e);
                 }
             })();
         )");
+    } else {
+        emscripten_run_script("alert('Failed to generate map file.');");
     }
 #endif
 }
