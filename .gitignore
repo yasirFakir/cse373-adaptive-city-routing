@@ -1,0 +1,15 @@
+# Build directories
+build/
+bin/
+lib/
+
+# WebAssembly artifacts
+CityRoutingProject/web/index.js
+CityRoutingProject/web/index.wasm
+CityRoutingProject/web/index.data
+
+# IDEs and System files
+.vscode/
+.idea/
+.DS_Store
+*.swp

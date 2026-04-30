@@ -1,0 +1,4 @@
+# Placeholder for city map data
+# Format: From To Distance Time
+1 2 5.0 10.0
+2 3 3.5 7.0
