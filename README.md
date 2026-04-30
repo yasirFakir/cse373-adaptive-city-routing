@@ -1,4 +1,4 @@
-# Adaptive City Routing Project
+# CSE373-Adaptive-City-Routing
 
 An efficient C++ based routing engine designed to find optimal paths in a city graph based on different modes (e.g., shortest distance, fastest time). This project utilizes Dijkstra's algorithm and is designed for cross-platform compatibility, including a WebAssembly build for web-based interaction.
 
