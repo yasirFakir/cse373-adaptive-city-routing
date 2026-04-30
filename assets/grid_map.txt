@@ -1,0 +1,19 @@
+# Grid City Layout (Manhattan Style)
+# A B C
+# D E F
+# G H I
+A B 10 5 2 road
+B C 10 5 2 road
+A D 10 5 2 road
+B E 10 5 2 road
+C F 10 5 2 road
+D E 10 5 2 road
+E F 10 5 2 road
+D G 10 5 2 road
+E H 10 5 2 road
+F I 10 5 2 road
+G H 10 5 2 road
+H I 10 5 2 road
+# Shortcuts
+A E 14 3 10 rail
+E I 14 3 10 rail

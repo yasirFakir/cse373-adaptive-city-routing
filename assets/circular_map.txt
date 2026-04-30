@@ -1,0 +1,12 @@
+# Circular City Layout
+# Node A is the center, B-F form a ring
+A B 10 5 2 road
+A C 10 5 2 road
+A D 10 5 2 road
+A E 10 5 2 road
+A F 10 5 2 road
+B C 5 2 1 road
+C D 5 2 1 road
+D E 5 2 1 road
+E F 5 2 1 road
+F B 5 2 1 road

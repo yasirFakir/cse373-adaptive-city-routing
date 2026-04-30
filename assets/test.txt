@@ -1,0 +1,9 @@
+# Node1 Node2 Distance Time Cost
+A B 10 5 2
+A D 10 5 2
+B C 10 5 2
+C F 10 5 2
+D G 10 5 2
+F I 10 5 2
+G H 10 5 2
+H I 10 5 2

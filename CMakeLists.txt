@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.14)
 project(CSE373-Adaptive-City-Routing)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -11,15 +11,46 @@ set(SOURCES
     src/algorithms.cpp
 )
 
-# Headers
-include_directories(src)
+# ImGui setup
+include(FetchContent)
+FetchContent_Declare(
+    imgui
+    GIT_REPOSITORY https://github.com/ocornut/imgui.git
+    GIT_TAG        v1.90.4
+)
+FetchContent_MakeAvailable(imgui)
 
-# Executable
-add_executable(CityRouting ${SOURCES})
+# Add ImGui sources (Core + SDL2 + OpenGL3)
+set(IMGUI_SOURCES
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/imgui_demo.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+)
 
-# WebAssembly (conditional if using Emscripten)
+include_directories(src ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
+
 if(EMSCRIPTEN)
-    set_target_properties(CityRouting PROPERTIES SUFFIX ".js")
-    set(CMAKE_EXECUTABLE_SUFFIX ".js")
-    # Add Emscripten specific flags here
+    # WebAssembly specific flags
+    add_executable(CSE373-Adaptive-City-Routing ${SOURCES} ${IMGUI_SOURCES})
+    set_target_properties(CSE373-Adaptive-City-Routing PROPERTIES SUFFIX ".js")
+    
+    target_link_options(CSE373-Adaptive-City-Routing PRIVATE
+        "-s USE_SDL=2"
+        "-s USE_WEBGL2=1"
+        "-s FULL_ES3=1"
+        "-s WASM=1"
+        "-s ALLOW_MEMORY_GROWTH=1"
+        "-s NO_EXIT_RUNTIME=1"
+        "--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/assets@/assets"
+    )
+else()
+    # Native build (requires SDL2 and OpenGL installed on system)
+    find_package(SDL2 REQUIRED)
+    find_package(OpenGL REQUIRED)
+    add_executable(CSE373-Adaptive-City-Routing ${SOURCES} ${IMGUI_SOURCES})
+    target_link_libraries(CSE373-Adaptive-City-Routing PRIVATE SDL2::SDL2 OpenGL::GL)
 endif()
