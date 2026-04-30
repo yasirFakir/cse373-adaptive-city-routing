@@ -272,52 +272,94 @@ void main_loop() {
         else if (selectedEdge.from != -1) { cityGraph.removeEdge(selectedEdge.from, selectedEdge.to); selectedEdge = {-1, -1}; pathFound = false; }
     }
     ImGui::SetNextWindowPos(ImVec2(0, 0)); ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
-    ImGui::Begin("Site", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
-    float canvasH = ImGui::GetIO().DisplaySize.y * 0.55f, canvasW = ImGui::GetIO().DisplaySize.x;
+    ImGui::Begin("Site", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+    bool isMobile = ImGui::GetIO().DisplaySize.x < 768.0f;
+    float canvasH = ImGui::GetIO().DisplaySize.y * (isMobile ? 0.45f : 0.55f);
+    float canvasW = ImGui::GetIO().DisplaySize.x;
+    
     ImGui::BeginChild("GraphArea", ImVec2(0, canvasH), true, ImGuiWindowFlags_NoScrollbar);
     ImVec2 childPos = ImGui::GetCursorScreenPos(); DrawGraph(ImGui::GetWindowDrawList(), childPos, ImVec2(canvasW, canvasH));
+    
+    // Left Overlay
     ImGui::SetCursorScreenPos(ImVec2(childPos.x + 10, childPos.y + 10)); 
     ImGui::BeginGroup();
-    if (ImGui::Button(isDarkMode ? "LIGHT MODE" : "DARK MODE", ImVec2(140, 30))) isDarkMode = !isDarkMode;
-    ImGui::Spacing(); ImGui::TextColored(isDarkMode?ImVec4(0,1,0,1):ImVec4(0,0.5f,0,1), "PATH SETUP");
-    ImGui::PushItemWidth(140); ImGui::InputText("Start", startLabel, 16); ImGui::InputText("End", endLabel, 16); ImGui::PopItemWidth();
-    if (ImGui::Button("COMPUTE", ImVec2(140, 35))) { Recompute(); }
-    ImGui::Spacing(); if (ImGui::Button("ADD NODE", ImVec2(140, 30))) { int mId = 0; for (auto id : cityGraph.getAllNodes()) mId = std::max(mId, id); cityGraph.setNodePos(mId + 1, 200+(rand()%400), 100+(rand()%200)); }
-    if (selectedNode != -1 && ImGui::Button("DELETE NODE", ImVec2(140, 30))) { cityGraph.removeNode(selectedNode); selectedNode = -1; pathFound = false; }
-    ImGui::Spacing(); ImGui::TextColored(isDarkMode?ImVec4(1,1,0,1):ImVec4(0.5f,0.5f,0,1), "CREATION TYPE");
-    ImGui::RadioButton("Road", (int*)&currentCreationType, 0); ImGui::RadioButton("Metro", (int*)&currentCreationType, 1); ImGui::RadioButton("Bus", (int*)&currentCreationType, 2);
-    ImGui::EndGroup();
-    ImGui::SetCursorScreenPos(ImVec2(childPos.x + canvasW - 160, childPos.y + 10)); 
-    ImGui::BeginGroup();
-    if (ImGui::Button("IMPORT", ImVec2(140, 30))) { ImGui::OpenPopup("Select Map"); }
-    if (ImGui::Button("STORE", ImVec2(140, 30))) {
-#ifdef __EMSCRIPTEN__
-        TriggerWasmDownload();
-#else
-        std::string p = FileDialog(true); if (!p.empty()) cityGraph.saveToFile(p);
-#endif
+    if (ImGui::Button(isDarkMode ? "LIGHT" : "DARK", ImVec2(80, 25))) isDarkMode = !isDarkMode;
+    if (!isMobile) {
+        ImGui::Spacing(); ImGui::TextColored(isDarkMode?ImVec4(0,1,0,1):ImVec4(0,0.5f,0,1), "PATH SETUP");
+        ImGui::PushItemWidth(100); ImGui::InputText("Start", startLabel, 16); ImGui::InputText("End", endLabel, 16); ImGui::PopItemWidth();
+        if (ImGui::Button("COMPUTE", ImVec2(100, 30))) { Recompute(); }
     }
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0, 0, 1));
-    if (ImGui::Button("CLEAR ALL", ImVec2(140, 30))) { cityGraph.getAdjList().clear(); cityGraph.getPositions().clear(); globallyAvoidedNodes.clear(); globallyAvoidedTypes.clear(); pathFound = false; startLabel[0] = 'A'; startLabel[1] = '\0'; endLabel[0] = 'C'; endLabel[1] = '\0'; }
-    ImGui::PopStyleColor();
-    ImGui::Spacing(); ImGui::TextColored(isDarkMode?ImVec4(1,0.4f,0.4f,1):ImVec4(0.8f,0,0,1), "NODE FILTERS");
-    ImGui::BeginChild("NF", ImVec2(140, 90), true);
-    auto allN = cityGraph.getAllNodes(); std::sort(allN.begin(), allN.end());
-    for (int n : allN) { bool act = !globallyAvoidedNodes.count(n); if (ImGui::Checkbox(Graph::idToLabel(n).c_str(), &act)) { if(!act) globallyAvoidedNodes.insert(n); else globallyAvoidedNodes.erase(n); if(pathFound) Recompute(); } }
-    ImGui::EndChild();
-    ImGui::Spacing(); ImGui::TextColored(isDarkMode?ImVec4(1,0.4f,1,1):ImVec4(0.6f,0,0.6f,1), "TRANSPORT FILTERS");
-    auto TC = [&](const char* l, const char* t, ImVec4 c) {
-        std::string typeStr = t;
-        bool act = !globallyAvoidedTypes.count(typeStr); ImGui::PushStyleColor(ImGuiCol_Text, c);
-        if (ImGui::Checkbox(l, &act)) {
-            if (!act) globallyAvoidedTypes.insert(typeStr);
-            else globallyAvoidedTypes.erase(typeStr);
-            if (pathFound) Recompute();
-        }
-        ImGui::PopStyleColor();
-    };
-    TC("Road Filter", "road", ImVec4(0,0.6f,1,1)); TC("Metro Filter", "metro", ImVec4(1,0,1,1)); TC("Bus Filter", "bus", ImVec4(1,0.5f,0,1));
     ImGui::EndGroup();
+
+    // Right Overlay - Only show if not too narrow, or adjust positioning
+    if (canvasW > 350) {
+        ImGui::SetCursorScreenPos(ImVec2(childPos.x + canvasW - (isMobile ? 100 : 160), childPos.y + 10)); 
+        ImGui::BeginGroup();
+        if (isMobile) {
+            if (ImGui::Button("MENU", ImVec2(80, 25))) ImGui::OpenPopup("MobileMenu");
+            if (ImGui::BeginPopup("MobileMenu")) {
+                if (ImGui::Button("COMPUTE", ImVec2(120, 30))) { Recompute(); ImGui::CloseCurrentPopup(); }
+                ImGui::Separator();
+                ImGui::InputText("Start", startLabel, 16); ImGui::InputText("End", endLabel, 16);
+                ImGui::Separator();
+                if (ImGui::Button("IMPORT", ImVec2(120, 30))) { ImGui::OpenPopup("Select Map"); }
+                if (ImGui::Button("STORE", ImVec2(120, 30))) { TriggerWasmDownload(); ImGui::CloseCurrentPopup(); }
+                ImGui::Separator();
+                ImGui::Text("Filters:");
+                auto allN = cityGraph.getAllNodes(); std::sort(allN.begin(), allN.end());
+                for (int n : allN) { bool act = !globallyAvoidedNodes.count(n); if (ImGui::Checkbox(Graph::idToLabel(n).c_str(), &act)) { if(!act) globallyAvoidedNodes.insert(n); else globallyAvoidedNodes.erase(n); if(pathFound) Recompute(); } }
+                ImGui::Separator();
+                auto TC = [&](const char* l, const char* t, ImVec4 c) {
+                    bool act = !globallyAvoidedTypes.count(t); ImGui::PushStyleColor(ImGuiCol_Text, c);
+                    if (ImGui::Checkbox(l, &act)) { if (!act) globallyAvoidedTypes.insert(t); else globallyAvoidedTypes.erase(t); if (pathFound) Recompute(); }
+                    ImGui::PopStyleColor();
+                };
+                TC("Road", "road", ImVec4(0,0.6f,1,1)); TC("Metro", "metro", ImVec4(1,0,1,1)); TC("Bus", "bus", ImVec4(1,0.5f,0,1));
+                ImGui::EndPopup();
+            }
+        } else {
+            if (ImGui::Button("IMPORT", ImVec2(140, 30))) { ImGui::OpenPopup("Select Map"); }
+            if (ImGui::Button("STORE", ImVec2(140, 30))) {
+#ifdef __EMSCRIPTEN__
+                TriggerWasmDownload();
+#else
+                std::string p = FileDialog(true); if (!p.empty()) cityGraph.saveToFile(p);
+#endif
+            }
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0, 0, 1));
+            if (ImGui::Button("CLEAR ALL", ImVec2(140, 30))) { cityGraph.getAdjList().clear(); cityGraph.getPositions().clear(); globallyAvoidedNodes.clear(); globallyAvoidedTypes.clear(); pathFound = false; startLabel[0] = 'A'; startLabel[1] = '\0'; endLabel[0] = 'C'; endLabel[1] = '\0'; }
+            ImGui::PopStyleColor();
+            
+            ImGui::Spacing(); ImGui::TextColored(isDarkMode?ImVec4(1,0.4f,0.4f,1):ImVec4(0.8f,0,0,1), "FILTERS");
+            if (ImGui::BeginChild("Filters", ImVec2(140, 150), true)) {
+                ImGui::Text("Nodes:");
+                auto allN = cityGraph.getAllNodes(); std::sort(allN.begin(), allN.end());
+                for (int n : allN) { bool act = !globallyAvoidedNodes.count(n); if (ImGui::Checkbox(Graph::idToLabel(n).c_str(), &act)) { if(!act) globallyAvoidedNodes.insert(n); else globallyAvoidedNodes.erase(n); if(pathFound) Recompute(); } }
+                ImGui::Separator();
+                ImGui::Text("Transport:");
+                auto TC = [&](const char* l, const char* t, ImVec4 c) {
+                    bool act = !globallyAvoidedTypes.count(t); ImGui::PushStyleColor(ImGuiCol_Text, c);
+                    if (ImGui::Checkbox(l, &act)) { if (!act) globallyAvoidedTypes.insert(t); else globallyAvoidedTypes.erase(t); if (pathFound) Recompute(); }
+                    ImGui::PopStyleColor();
+                };
+                TC("Road", "road", ImVec4(0,0.6f,1,1)); TC("Metro", "metro", ImVec4(1,0,1,1)); TC("Bus", "bus", ImVec4(1,0.5f,0,1));
+                ImGui::EndChild();
+            }
+        }
+        ImGui::EndGroup();
+    }
+
+    if (!isMobile) {
+        // ... (existing path setup/creation type UI for desktop)
+        ImGui::SetCursorScreenPos(ImVec2(childPos.x + 10, childPos.y + 120));
+        ImGui::BeginGroup();
+        ImGui::TextColored(isDarkMode?ImVec4(1,1,0,1):ImVec4(0.5f,0.5f,0,1), "CREATION");
+        ImGui::RadioButton("Road", (int*)&currentCreationType, 0); ImGui::SameLine();
+        ImGui::RadioButton("Metro", (int*)&currentCreationType, 1); ImGui::SameLine();
+        ImGui::RadioButton("Bus", (int*)&currentCreationType, 2);
+        ImGui::EndGroup();
+    }
+
     if (ImGui::BeginPopup("Select Map")) {
 #if !defined(__EMSCRIPTEN__) && !defined(EMSCRIPTEN)
         const char* maps[] = { "assets/city_map.txt", "assets/circular_map.txt", "assets/grid_map.txt", "assets/test.txt" };
@@ -328,7 +370,24 @@ void main_loop() {
         ImGui::EndPopup();
     }
     ImGui::EndChild();
-    ImGui::Columns(2, "Bottom", true); ImGui::SetColumnWidth(0, 450.0f);
+
+    if (isMobile) {
+        // Mobile Path Controls below the graph
+        ImGui::BeginGroup();
+        ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.45f);
+        ImGui::InputText("Start", startLabel, 16); ImGui::SameLine();
+        ImGui::InputText("End", endLabel, 16);
+        ImGui::PopItemWidth();
+        ImGui::SameLine();
+        if (ImGui::Button("GO", ImVec2(ImGui::GetContentRegionAvail().x, 0))) { Recompute(); }
+        ImGui::EndGroup();
+        ImGui::Separator();
+    }
+
+    if (!isMobile) {
+        ImGui::Columns(2, "Bottom", true); ImGui::SetColumnWidth(0, 450.0f);
+    }
+
     {
         ImGui::TextColored(isDarkMode?ImVec4(0,1,0,1):ImVec4(0,0.6f,0,1), "RESULTS SUMMARY");
         ImGui::Checkbox("D", &showDist); ImGui::SameLine(); ImGui::Checkbox("T", &showTime); ImGui::SameLine(); ImGui::Checkbox("C", &showCost);
@@ -347,13 +406,13 @@ void main_loop() {
             else { for(int i=0; i<3; i++) if(results[i].found) { ImGui::TextColored(isDarkMode?ImVec4(0.5f,1,0.5f,1):ImVec4(0,0.5f,0,1), "%s Path:", i==0?"Shortest":i==1?"Fastest":"Cheapest"); std::string p = ""; for(size_t n=0; n<results[i].nodes.size(); n++) p += Graph::idToLabel(results[i].nodes[n]) + (n==results[i].nodes.size()-1?"":" -> "); ImGui::TextWrapped("%s", p.c_str()); } }
         }
     }
-    ImGui::NextColumn();
+    if (!isMobile) ImGui::NextColumn(); else ImGui::Separator();
     {
         ImGui::TextColored(isDarkMode?ImVec4(1,0.8f,0,1):ImVec4(0.7f,0.5f,0,1), "RELAXATION TRACE");
         const char* mNs[] = {"Distance", "Time", "Cost"}; ImGui::SetNextItemWidth(120); ImGui::Combo("Metric", &tableMode, mNs, 3);
         if (pathFound && results[tableMode].found) {
             auto nodes = cityGraph.getAllNodes(); std::sort(nodes.begin(), nodes.end());
-            if (ImGui::BeginTable("Trace", (int)nodes.size() + 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX, ImVec2(0, 150))) {
+            if (ImGui::BeginTable("Trace", (int)nodes.size() + 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX, ImVec2(0, isMobile ? 200 : 150))) {
                 ImGui::TableSetupColumn("Step"); ImGui::TableSetupColumn("Node"); for (int n : nodes) ImGui::TableSetupColumn(Graph::idToLabel(n).c_str(), ImGuiTableColumnFlags_WidthFixed, 45); ImGui::TableHeadersRow();
                 for (size_t i = 0; i < results[tableMode].relaxationTable.size(); i++) {
                     const auto& s = results[tableMode].relaxationTable[i]; ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("%zu", i); ImGui::TableSetColumnIndex(1); ImGui::Text("%s", Graph::idToLabel(s.visitedNode).c_str());
@@ -373,6 +432,7 @@ void main_loop() {
             }
         }
     }
+    if (!isMobile) ImGui::Columns(1);
     ImGui::End();
     ImGui::Render();
     glViewport(0, 0, (int)ImGui::GetIO().DisplaySize.x, (int)ImGui::GetIO().DisplaySize.y);
