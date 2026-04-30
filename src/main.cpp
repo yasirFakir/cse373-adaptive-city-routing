@@ -200,7 +200,15 @@ void DrawGraph(ImDrawList* drawList, ImVec2 offset, ImVec2 size) {
                 else if (mouseClicked) { selectedEdge = {u, edge.to}; selectedNode = -1; }
             }
             drawList->AddLine(p1, p2, col, isHighlighted ? 6.0f : 3.0f);
-            if (showDist) { ImVec2 mid = {(p1.x+p2.x)/2, (p1.y+p2.y)/2}; drawList->AddText(mid, primaryColor, std::to_string((int)edge.distance).c_str()); }
+            std::string label = "";
+            bool isSelected = (selectedEdge.from == u && selectedEdge.to == edge.to);
+            if (showDist || isSelected) label += "D:" + std::to_string((int)edge.distance) + " ";
+            if (showTime || isSelected) label += "T:" + std::to_string((int)edge.time) + " ";
+            if (showCost || isSelected) label += "C:" + std::to_string((int)edge.cost) + " ";
+            if (!label.empty()) {
+                ImVec2 mid = {(p1.x+p2.x)/2, (p1.y+p2.y)/2};
+                drawList->AddText(mid, isSelected ? IM_COL32(255, 255, 0, 255) : primaryColor, label.c_str());
+            }
         }
     }
     if (draggingEdgeFrom != -1) {
