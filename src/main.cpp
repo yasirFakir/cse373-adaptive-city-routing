@@ -311,7 +311,7 @@ void main_loop() {
     TC("Road Filter", "road", ImVec4(0,0.6f,1,1)); TC("Metro Filter", "metro", ImVec4(1,0,1,1)); TC("Bus Filter", "bus", ImVec4(1,0.5f,0,1));
     ImGui::EndGroup();
     if (ImGui::BeginPopup("Select Map")) {
-#ifndef __EMSCRIPTEN__
+#if !defined(__EMSCRIPTEN__) && !defined(EMSCRIPTEN)
         const char* maps[] = { "assets/city_map.txt", "assets/circular_map.txt", "assets/grid_map.txt", "assets/test.txt" };
         for (int i = 0; i < 4; i++) if (ImGui::Selectable(maps[i])) { if (cityGraph.loadFromFile(maps[i])) { cityGraph.applyCircleLayout(canvasW/2, canvasH/2, 200.0f); pathFound = false; } }
         ImGui::Separator();

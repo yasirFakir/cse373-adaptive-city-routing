@@ -1,60 +1,54 @@
-# Dijkstra Algorithm - Adaptive City Routing
+# Dijkstra Algorithm - Adaptive City Routing System
+### CSE 373: Design and Analysis of Algorithms Project
 
-An efficient C++ based routing engine designed to find optimal paths in a city graph based on different modes (Shortest Distance, Fastest Time, Cheapest Route). This project features an interactive GUI built with **Dear ImGui** and is cross-platform compatible, including **WebAssembly** support.
+An interactive, multi-constraint routing system that utilizes Dijkstra's algorithm to find optimal paths based on distance, time, and cost in a dynamic urban environment.
 
-## Features
-- **Interactive GUI**: User-friendly interface for inputting nodes and selecting modes.
-- **Dijkstra's Algorithm**: High-performance routing logic with step-by-step relaxation tables.
-- **Multi-Mode**: Optimize for distance, travel time, or cost.
-- **Cross-Platform**: Runs natively on Linux and in the Browser via WebAssembly.
+## 🚀 Features
+- **Multi-Constraint Optimization:** Switch between Shortest Distance, Fastest Time, and Cheapest Route.
+- **Dynamic Filtering:** Toggle visibility and accessibility of specific nodes and transport modes (Road, Metro, Bus).
+- **Interactive Graph:** Add/delete nodes, drag to move nodes, and create edges in real-time.
+- **Cross-Platform:** Runs natively on Linux and via WebAssembly in modern browsers.
+- **Map Persistence:** Upload custom map files from your PC or download your created maps.
 
----
-
-## Live Demo
-The project is hosted live on GitHub Pages:
-**[View Live Program](https://yasirFakir.github.io/dijkstra-algorithm/)**
-
----
-
-## Build Instructions: Linux
-
-### 1. Install Dependencies
-Ensure you have `cmake`, `sdl2`, and OpenGL development headers installed.
-```bash
-# Example for Arch Linux
-sudo pacman -S base-devel cmake sdl2 mesa
+## 📂 Project Structure
+```text
+.
+├── assets/                    # Map data and project documentation
+│   ├── circular_map.txt
+│   ├── city_map.txt           # Default map
+│   ├── grid_map.txt
+│   └── test.txt
+├── src/                       # C++ Source Code
+│   ├── main.cpp               # GUI and App Logic (ImGui + SDL2)
+│   ├── graph.cpp/h            # Graph data structure implementation
+│   └── algorithms.cpp         # Dijkstra's Algorithm implementation
+├── web/                       # Web-specific files
+│   └── index.html             # Emscripten template
+├── CMakeLists.txt             # Build configuration
+└── README.md                  # Project documentation
 ```
 
-### 2. Build the Project
+## 🛠️ Build & Run
+
+### Native (Linux)
+**Dependencies:** `SDL2`, `OpenGL`, `Zenity` (for file dialogs).
 ```bash
-mkdir build
-cd build
+mkdir build && cd build
 cmake ..
 make
-```
-
-### 3. Run
-```bash
 ./dijkstra-algorithm
 ```
 
----
-
-## Build Instructions: WebAssembly (Wasm)
-
-Requires the [Emscripten SDK (emsdk)](https://emscripten.org/docs/getting_started/downloads.html).
-
+### Web (Emscripten)
 ```bash
-mkdir build_wasm
-cd build_wasm
 emcmake cmake .. -DEMSCRIPTEN=ON
 make
 ```
 
----
+## 🧠 Algorithmic Implementation
+The core engine implements a modified Dijkstra's algorithm using a `std::priority_queue` for efficiency ($O(E \log V)$). It supports:
+- **Avoidance Sets:** Skip nodes or transport types during the relaxation step.
+- **Trace Visualization:** A step-by-step relaxation table showing how distances are updated across the graph.
 
-## Project Structure
-- `src/`: Core C++ logic and GUI implementation.
-- `assets/`: Graph data and map files.
-- `web/`: WebAssembly entry point and hosting files.
-- `docs/`: Technical documentation and algorithm details.
+## 👥 Contributors
+- **Yasir** - Lead Developer & Algorithm Design
