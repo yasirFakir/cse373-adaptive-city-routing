@@ -28,6 +28,20 @@ An interactive, multi-constraint routing system that utilizes Dijkstra's algorit
 └── README.md                  # Project documentation
 ```
 
+## 🎮 User Guide (Interaction)
+### Graph Controls
+- **Move Nodes:** Click and hold the **Left Mouse Button** on a node to drag it to a new position.
+- **Create Edges:** Click and hold the **Right Mouse Button** on a node, then drag the connection to another node to create a new road/metro/bus line.
+- **Select Items:** Single **Left Click** on a node or edge to select it for deletion.
+- **Delete Items:** Press the **Delete** or **Backspace** key to remove the currently selected node or edge.
+- **Edit Edge Properties:** **Double Click** on any edge to open a popup where you can modify its distance, time, cost, and transport type.
+- **Add New Nodes:** Use the **ADD NODE** button in the sidebar to spawn a new node on the canvas.
+
+### Pathfinding
+1. Enter the **Start** and **End** node labels (e.g., A, B, C) in the input fields.
+2. Click **COMPUTE** to visualize the optimal paths.
+3. Use the **NODE FILTERS** and **TRANSPORT FILTERS** checklists to dynamically block specific routes.
+
 ## 🛠️ Build & Run
 
 ### Native (Linux)
