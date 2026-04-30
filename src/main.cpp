@@ -63,11 +63,14 @@ void ApplyTheme() {
 }
 
 std::string FileDialog(bool save) {
-#ifdef __linux__
+#if defined(__linux__) && !defined(__EMSCRIPTEN__)
     std::string cmd = save ? "zenity --file-selection --save --title='Save Map' --filename='map.txt' 2>/dev/null" : "zenity --file-selection --title='Load Map' --file-filter='*.txt' 2>/dev/null";
     std::array<char, 128> buffer;
     std::string result = "";
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
+
+    auto deleter = [](FILE* f) { if (f) pclose(f); };
+    std::unique_ptr<FILE, decltype(deleter)> pipe(popen(cmd.c_str(), "r"), deleter);
+
     if (!pipe) return "";
     while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) result += buffer.data();
     if (!result.empty() && result.back() == '\n') result.pop_back();
@@ -186,16 +189,18 @@ void main_loop() {
     ImGui::Begin("Site", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
 
     // --- TOP BAR (Dark Mode & File Ops) ---
-    ImGui::Checkbox("Dark Mode", &isDarkMode);
+    if (ImGui::Button(isDarkMode ? "LIGHT MODE" : "DARK MODE", ImVec2(160, 30))) {
+        isDarkMode = !isDarkMode;
+    }
     ImGui::SameLine(ImGui::GetIO().DisplaySize.x - 340);
 
     if (ImGui::Button("IMPORT MAP", ImVec2(160, 30))) {
-    #ifdef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__
         ImGui::OpenPopup("Select Map");
-    #else
+#else
         std::string p = FileDialog(false);
         if (!p.empty()) { cityGraph.loadFromFile(p); cityGraph.applyCircleLayout(ImGui::GetIO().DisplaySize.x/2, ImGui::GetIO().DisplaySize.y*0.3f, 200.0f); pathFound = false; }
-    #endif
+#endif
     }
 
     if (ImGui::BeginPopup("Select Map")) {
@@ -272,14 +277,19 @@ void main_loop() {
         ImGui::TextColored(ImVec4(0, 1, 0, 1), "RESULTS SUMMARY");
         ImGui::Checkbox("D", &showDist); ImGui::SameLine(); ImGui::Checkbox("T", &showTime); ImGui::SameLine(); ImGui::Checkbox("C", &showCost);
         if (pathFound) {
-            if (ImGui::BeginTable("Res", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
-                ImGui::TableSetupColumn("Mode"); ImGui::TableSetupColumn("D"); ImGui::TableSetupColumn("T"); ImGui::TableSetupColumn("C");
+            if (ImGui::BeginTable("Res", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
+                ImGui::TableSetupColumn("Mode"); ImGui::TableSetupColumn("D"); ImGui::TableSetupColumn("T"); ImGui::TableSetupColumn("C"); ImGui::TableSetupColumn("ms");
                 ImGui::TableHeadersRow();
                 const char* n[] = {"Short", "Fast", "Cheap"};
                 for (int i=0; i<3; ++i) {
                     ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("%s", n[i]);
-                    if (results[i].found) { ImGui::TableSetColumnIndex(1); ImGui::Text("%.1f", results[i].totalDistance); ImGui::TableSetColumnIndex(2); ImGui::Text("%.1f", results[i].totalTime); ImGui::TableSetColumnIndex(3); ImGui::Text("%.1f", results[i].totalCost); }
-                    else ImGui::Text("N/A");
+                    if (results[i].found) { 
+                        ImGui::TableSetColumnIndex(1); ImGui::Text("%.1f", results[i].totalDistance); 
+                        ImGui::TableSetColumnIndex(2); ImGui::Text("%.1f", results[i].totalTime); 
+                        ImGui::TableSetColumnIndex(3); ImGui::Text("%.1f", results[i].totalCost); 
+                        ImGui::TableSetColumnIndex(4); ImGui::Text("%.2f", results[i].executionTimeMs);
+                    }
+                    else { ImGui::TableSetColumnIndex(1); ImGui::Text("N/A"); }
                 }
                 ImGui::EndTable();
             }
