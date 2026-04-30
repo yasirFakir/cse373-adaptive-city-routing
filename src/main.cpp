@@ -186,6 +186,8 @@ void DrawGraph(ImDrawList* drawList, ImVec2 offset, ImVec2 size) {
     bool mouseClicked = ImGui::IsMouseClicked(0), mouseDoubleClicked = ImGui::IsMouseDoubleClicked(0);
     ImU32 primaryColor = isDarkMode ? IM_COL32(255, 255, 255, 255) : IM_COL32(0, 0, 0, 255);
 
+    bool hoveredAnyNode = false;
+    bool hoveredAnyEdge = false;
     for (auto const& [u, neighbors] : adj) {
         if (globallyAvoidedNodes.count(u)) continue;
         for (auto const& edge : neighbors) {
@@ -205,6 +207,7 @@ void DrawGraph(ImDrawList* drawList, ImVec2 offset, ImVec2 size) {
             if (isHighlighted) col = IM_COL32(0, 255, 0, 255);
             else if (selectedEdge.from == u && selectedEdge.to == edge.to) col = IM_COL32(255, 255, 0, 255);
             if (DistToSegment(mousePos, p1, p2) < 12.0f) {
+                hoveredAnyEdge = true;
                 if (mouseDoubleClicked) { activeEdge = {u, edge.to, edge.distance, edge.time, edge.cost, edge.type}; ImGui::OpenPopup("Edit Edge"); }
                 else if (mouseClicked) { selectedEdge = {u, edge.to}; selectedNode = -1; }
             }
@@ -228,7 +231,6 @@ void DrawGraph(ImDrawList* drawList, ImVec2 offset, ImVec2 size) {
         else if (currentCreationType == CreationType::BUS) wireCol = IM_COL32(255, 165, 0, 255);
         drawList->AddLine(p1, mousePos, wireCol, 2.5f);
     }
-    bool hoveredAnyNode = false;
     for (auto& [id, pos] : positions) {
         ImVec2 p = {pos.x + offset.x, pos.y + offset.y};
         float radius = 22.0f;
@@ -254,7 +256,7 @@ void DrawGraph(ImDrawList* drawList, ImVec2 offset, ImVec2 size) {
         drawList->AddText({p.x - ImGui::CalcTextSize(label.c_str()).x/2, p.y - ImGui::CalcTextSize(label.c_str()).y/2}, (selectedNode==id)?IM_COL32(0,0,0,255):primaryColor, label.c_str());
     }
 
-    if (mouseDoubleClicked && !hoveredAnyNode) {
+    if (mouseDoubleClicked && !hoveredAnyNode && !hoveredAnyEdge) {
         // Check if mouse is inside graph area
         if (mousePos.x >= offset.x && mousePos.x <= offset.x + size.x &&
             mousePos.y >= offset.y && mousePos.y <= offset.y + size.y) {
@@ -362,6 +364,13 @@ void main_loop() {
                 ImGui::RadioButton("Bus", (int*)&currentCreationType, 2);
                 ImGui::Separator();
                 if (ImGui::Button("IMPORT", ImVec2(120, 30))) {
+#ifdef __EMSCRIPTEN__
+                    TriggerWasmUpload();
+#else
+                    ImGui::OpenPopup("Select Map");
+#endif
+                }
+                if (ImGui::Button("SAMPLES", ImVec2(120, 30))) {
                     ImGui::OpenPopup("Select Map");
                 }
                 if (ImGui::Button("STORE", ImVec2(120, 30))) { TriggerWasmDownload(); ImGui::CloseCurrentPopup(); }
@@ -381,6 +390,13 @@ void main_loop() {
             }
         } else {
             if (ImGui::Button("IMPORT", ImVec2(140, 30))) {
+#ifdef __EMSCRIPTEN__
+                TriggerWasmUpload();
+#else
+                ImGui::OpenPopup("Select Map");
+#endif
+            }
+            if (ImGui::Button("SAMPLES", ImVec2(140, 30))) {
                 ImGui::OpenPopup("Select Map");
             }
             if (ImGui::Button("STORE", ImVec2(140, 30))) {
