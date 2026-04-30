@@ -244,7 +244,16 @@ void main_loop() {
     ImGui::EndGroup();
     if (ImGui::BeginPopup("Select Map")) {
         const char* maps[] = { "assets/city_map.txt", "assets/circular_map.txt", "assets/grid_map.txt", "assets/test.txt" };
-        for (int i = 0; i < 4; i++) if (ImGui::Selectable(maps[i])) { cityGraph.loadFromFile(maps[i]); cityGraph.applyCircleLayout(canvasW/2, canvasH/2, 200.0f); pathFound = false; }
+        for (int i = 0; i < 4; i++) {
+            if (ImGui::Selectable(maps[i])) {
+                if (cityGraph.loadFromFile(maps[i])) {
+                    cityGraph.applyCircleLayout(canvasW/2, canvasH/2, 200.0f);
+                    pathFound = false;
+                } else {
+                    // Feedback handled in console for now, could add a modal
+                }
+            }
+        }
         ImGui::EndPopup();
     }
     ImGui::EndChild();

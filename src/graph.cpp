@@ -55,20 +55,25 @@ void Graph::removeEdge(int from, int to) {
 
 bool Graph::loadFromFile(const std::string& filename) {
     std::ifstream file(filename);
-    if (!file.is_open()) return false;
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open file " << filename << std::endl;
+        return false;
+    }
     nodeIds.clear(); adj.clear(); nodePositions.clear();
     std::string line;
     while (std::getline(file, line)) {
         if (line.empty() || line[0] == '#') continue;
         std::stringstream ss(line);
-        std::string uStr, vStr; double dist, time, cost;
+        std::string uStr, vStr, type = "road"; 
+        double dist, time, cost;
         if (ss >> uStr >> vStr >> dist >> time >> cost) {
+            if (!(ss >> type)) type = "road"; // Default if type is missing
             auto parseToken = [](std::string s) {
                 if (s.empty()) return 0;
-                if (std::isdigit(s[0])) return std::stoi(s);
+                if (std::isdigit((unsigned char)s[0])) return std::stoi(s);
                 return labelToId(s);
             };
-            addEdge(parseToken(uStr), parseToken(vStr), dist, time, cost, "road");
+            addEdge(parseToken(uStr), parseToken(vStr), dist, time, cost, type);
         }
     }
     return true;
