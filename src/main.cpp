@@ -283,7 +283,13 @@ int main(int, char**) {
     window = SDL_CreateWindow("CSE373 - Dijkstra Algorithm", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1440, 900, SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
     gl_context = SDL_GL_CreateContext(window);
     IMGUI_CHECKVERSION(); ImGui::CreateContext();
-    ImGui_ImplSDL2_InitForOpenGL(window, gl_context); ImGui_ImplOpenGL3_Init("#version 130");
+    ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
+    
+#ifdef __EMSCRIPTEN__
+    ImGui_ImplOpenGL3_Init("#version 300 es");
+#else
+    ImGui_ImplOpenGL3_Init("#version 130");
+#endif
     cityGraph.loadFromFile("assets/city_map.txt");
     cityGraph.applyCircleLayout(1440/2, 900*0.60/2, 250.0f);
 #ifdef __EMSCRIPTEN__

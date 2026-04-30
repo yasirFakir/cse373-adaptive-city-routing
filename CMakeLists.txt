@@ -39,7 +39,7 @@ if(EMSCRIPTEN)
     set_target_properties(CSE373-Adaptive-City-Routing PROPERTIES SUFFIX ".js")
     
     # Flags needed for BOTH compiling (for headers) and linking
-    target_compile_options(CSE373-Adaptive-City-Routing PRIVATE "-sUSE_SDL=2")
+    target_compile_options(CSE373-Adaptive-City-Routing PRIVATE "-sUSE_SDL=2" -DIMGUI_IMPL_OPENGL_ES3)
     
     # Flags strictly for the Linker
     target_link_options(CSE373-Adaptive-City-Routing PRIVATE 
