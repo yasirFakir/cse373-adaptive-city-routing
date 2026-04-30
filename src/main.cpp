@@ -192,7 +192,7 @@ void main_loop() {
     if (ImGui::Button(isDarkMode ? "LIGHT MODE" : "DARK MODE", ImVec2(160, 30))) {
         isDarkMode = !isDarkMode;
     }
-    ImGui::SameLine(ImGui::GetIO().DisplaySize.x - 340);
+    ImGui::SameLine();
 
     if (ImGui::Button("IMPORT MAP", ImVec2(160, 30))) {
 #ifdef __EMSCRIPTEN__
@@ -217,10 +217,10 @@ void main_loop() {
 
     ImGui::SameLine();
     if (ImGui::Button("STORE MAP", ImVec2(160, 30))) {
-    #ifndef __EMSCRIPTEN__
+#ifndef __EMSCRIPTEN__
         std::string p = FileDialog(true);
         if (!p.empty()) cityGraph.saveToFile(p);
-    #endif
+#endif
     }
 
     float canvasHeight = ImGui::GetIO().DisplaySize.y * 0.60f;
