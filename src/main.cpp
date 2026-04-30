@@ -66,6 +66,21 @@ extern "C" {
 }
 #endif
 
+std::string FileDialog(bool save) {
+#if defined(__linux__) && !defined(__EMSCRIPTEN__)
+    std::string cmd = save ? "zenity --file-selection --save --title='Save Map' --filename='map.txt' 2>/dev/null" : "zenity --file-selection --title='Load Map' --file-filter='*.txt' 2>/dev/null";
+    std::array<char, 128> buffer;
+    std::string result = "";
+    auto deleter = [](FILE* f) { if (f) pclose(f); };
+    std::unique_ptr<FILE, decltype(deleter)> pipe(popen(cmd.c_str(), "r"), deleter);
+    if (!pipe) return "";
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) result += buffer.data();
+    if (!result.empty() && result.back() == '\n') result.pop_back();
+    return result;
+#endif
+    return "";
+}
+
 void TriggerWasmUpload() {
 #ifdef __EMSCRIPTEN__
     emscripten_run_script(R"(
@@ -84,6 +99,14 @@ void TriggerWasmUpload() {
         };
         input.click();
     )");
+#else
+    std::string p = FileDialog(false);
+    if (!p.empty()) {
+        if (cityGraph.loadFromFile(p)) {
+            cityGraph.applyCircleLayout(1440/2, 900*0.55/2, 250.0f);
+            pathFound = false;
+        }
+    }
 #endif
 }
 
@@ -110,21 +133,6 @@ void ApplyTheme() {
         style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.75f, 0.75f, 0.75f, 1.00f);
     }
     style.WindowRounding = 4.0f;
-}
-
-std::string FileDialog(bool save) {
-#if defined(__linux__) && !defined(__EMSCRIPTEN__)
-    std::string cmd = save ? "zenity --file-selection --save --title='Save Map' --filename='map.txt' 2>/dev/null" : "zenity --file-selection --title='Load Map' --file-filter='*.txt' 2>/dev/null";
-    std::array<char, 128> buffer;
-    std::string result = "";
-    auto deleter = [](FILE* f) { if (f) pclose(f); };
-    std::unique_ptr<FILE, decltype(deleter)> pipe(popen(cmd.c_str(), "r"), deleter);
-    if (!pipe) return "";
-    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) result += buffer.data();
-    if (!result.empty() && result.back() == '\n') result.pop_back();
-    return result;
-#endif
-    return "";
 }
 
 float DistToSegment(ImVec2 p, ImVec2 v, ImVec2 w) {
@@ -213,7 +221,7 @@ void DrawGraph(ImDrawList* drawList, ImVec2 offset, ImVec2 size) {
         const char* tNames[] = {"road", "metro", "bus"}; static int tIdx = 0;
         for(int i=0; i<3; i++) if(activeEdge.type == tNames[i]) tIdx = i;
         if(ImGui::Combo("Type", &tIdx, tNames, 3)) activeEdge.type = tNames[tIdx];
-        if (ImGui::Button("Update")) { cityGraph.addEdge(activeEdge.from, activeEdge.to, activeEdge.dist, activeEdge.time, activeEdge.cost, activeEdge.type); ImGui::CloseCurrentPopup(); }
+        if (ImGui::Button("Update")) { cityGraph.updateEdge(activeEdge.from, activeEdge.to, activeEdge.dist, activeEdge.time, activeEdge.cost, activeEdge.type); ImGui::CloseCurrentPopup(); }
         ImGui::SameLine(); if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
     }
@@ -258,18 +266,27 @@ void main_loop() {
     ImGui::Spacing(); ImGui::TextColored(isDarkMode?ImVec4(1,0.4f,0.4f,1):ImVec4(0.8f,0,0,1), "NODE FILTERS");
     ImGui::BeginChild("NF", ImVec2(140, 90), true);
     auto allN = cityGraph.getAllNodes(); std::sort(allN.begin(), allN.end());
-    for (int n : allN) { bool act = globallyAvoidedNodes.count(n); if (ImGui::Checkbox(Graph::idToLabel(n).c_str(), &act)) { if(act) globallyAvoidedNodes.insert(n); else globallyAvoidedNodes.erase(n); if(pathFound) Recompute(); } }
+    for (int n : allN) { bool act = !globallyAvoidedNodes.count(n); if (ImGui::Checkbox(Graph::idToLabel(n).c_str(), &act)) { if(!act) globallyAvoidedNodes.insert(n); else globallyAvoidedNodes.erase(n); if(pathFound) Recompute(); } }
     ImGui::EndChild();
-    ImGui::Spacing(); ImGui::TextColored(isDarkMode?ImVec4(1,0.4f,1,1):ImVec4(0.6f,0,0.6f,1), "TRANSPORT");
+    ImGui::Spacing(); ImGui::TextColored(isDarkMode?ImVec4(1,0.4f,1,1):ImVec4(0.6f,0,0.6f,1), "TRANSPORT FILTERS");
     auto TC = [&](const char* l, const char* t, ImVec4 c) {
-        bool act = globallyAvoidedTypes.count(t); ImGui::PushStyleColor(ImGuiCol_Text, c);
-        if (ImGui::Checkbox(l, &act)) { if(act) globallyAvoidedTypes.insert(t); else globallyAvoidedTypes.erase(t); if(pathFound) Recompute(); }
+        std::string typeStr = t;
+        bool act = !globallyAvoidedTypes.count(typeStr); ImGui::PushStyleColor(ImGuiCol_Text, c);
+        if (ImGui::Checkbox(l, &act)) {
+            if (!act) globallyAvoidedTypes.insert(typeStr);
+            else globallyAvoidedTypes.erase(typeStr);
+            if (pathFound) Recompute();
+        }
         ImGui::PopStyleColor();
     };
-    TC("Road", "road", ImVec4(0,0.6f,1,1)); TC("Metro", "metro", ImVec4(1,0,1,1)); TC("Bus", "bus", ImVec4(1,0.5f,0,1));
+    TC("Road Filter", "road", ImVec4(0,0.6f,1,1)); TC("Metro Filter", "metro", ImVec4(1,0,1,1)); TC("Bus Filter", "bus", ImVec4(1,0.5f,0,1));
     ImGui::EndGroup();
     if (ImGui::BeginPopup("Select Map")) {
+#ifdef __EMSCRIPTEN__
+        const char* maps[] = { "/assets/city_map.txt", "/assets/circular_map.txt", "/assets/grid_map.txt", "/assets/test.txt" };
+#else
         const char* maps[] = { "assets/city_map.txt", "assets/circular_map.txt", "assets/grid_map.txt", "assets/test.txt" };
+#endif
         for (int i = 0; i < 4; i++) if (ImGui::Selectable(maps[i])) { if (cityGraph.loadFromFile(maps[i])) { cityGraph.applyCircleLayout(canvasW/2, canvasH/2, 200.0f); pathFound = false; } }
         ImGui::Separator();
         if (ImGui::Selectable("UPLOAD FROM PC (.txt)")) { TriggerWasmUpload(); }
@@ -340,7 +357,12 @@ int main(int, char**) {
 #else
     ImGui_ImplOpenGL3_Init("#version 130");
 #endif
-    cityGraph.loadFromFile("assets/city_map.txt"); cityGraph.applyCircleLayout(1440/2, 900*0.55/2, 250.0f);
+#ifdef __EMSCRIPTEN__
+    cityGraph.loadFromFile("/assets/city_map.txt");
+#else
+    cityGraph.loadFromFile("assets/city_map.txt");
+#endif
+    cityGraph.applyCircleLayout(1440/2, 900*0.55/2, 250.0f);
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(main_loop, 0, 1);
 #else

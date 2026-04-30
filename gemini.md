@@ -1,63 +1,55 @@
-# ## Adaptive Multi-Constraint City Routing System
+# Dijkstra Algorithm - Adaptive City Routing System
 ### CSE 373: Design and Analysis of Algorithms Project
 
 ---
 
-## ## 1. Algorithmic Foundation
-This project implements **Dijkstra’s Algorithm** to solve complex multi-constraint routing problems within a urban graph environment[cite: 1].
+## 1. Algorithmic Foundation
+This system utilizes **Dijkstra’s Algorithm** to solve multi-constraint routing problems within a dynamic urban graph environment.
 
 ### **The Multi-Weight Model**
-Each connection in the city map is represented as a directed edge with a weight vector $W$:
-*   **$d$**: Physical distance (meters).
-*   **$t$**: Travel time (seconds), varying by transport mode.
-*   **$c$**: Financial cost (currency).
+Edges represent city connections with three primary metrics:
+*   **Distance ($d$):** Physical length between nodes.
+*   **Time ($t$):** Estimated travel time based on transport type.
+*   **Cost ($c$):** Financial cost of traversal.
 
-The core engine uses a **Min-Priority Queue** to explore nodes. To support "Custom Weighted Routes," the algorithm calculates a composite scalar weight $W_{final}$ based on user-defined coefficients $\alpha, \beta,$ and $\gamma$.
-
----
-
-## ## 2. Interactive Input Panel
-*The GUI homepage will feature these primary controls to satisfy the Functional Requirements:*
-
-*   **Location Selection**: Input for **Source** and **Destination** nodes.
-*   **Optimization Strategy**: Selection between:
-    *   `Shortest Distance` (Minimizes $d$).
-    *   `Fastest Route` (Minimizes $t$).
-    *   `Cheapest Route` (Minimizes $c$).
-    *   `Balanced/Custom` (Uses weight sliders for $\alpha, \beta, \gamma$).
-*   **Dynamic Constraints**: Toggle switches to exclude specific nodes or transport types (e.g., "Avoid Metro").
-*   **Execution Trigger**: A "Compute Route" button that initiates the Dijkstra logic and performance timer.
+The engine supports three optimization modes: `Shortest Distance`, `Fastest Time`, and `Cheapest Route`.
 
 ---
 
-## ## 3. Algorithm Step-by-Step Walkthrough
-*To provide an educational "Showcase" experience, the UI will visualize the internal state of the algorithm during execution.*
-
-### **Step 1: Initialization**
-*   Set all node distances to $\infty$, except for the Source node ($0$).
-*   Populate the Priority Queue with the Source node.
-*   Display the initial **Distance Table** in the GUI sidebar.
-
-### **Step 2: Iterative Relaxation**
-*   **Highlight Current Node**: The node currently being "relaxed" will glow in the UI.
-*   **Edge Evaluation**: Visualize the calculation $Distance(u) + weight(u, v) < Distance(v)$.
-*   **Constraint Check**: If a path violates a user constraint, the UI will mark that edge as "Filtered" and skip it.
-
-### **Step 3: Path Reconstruction**
-*   Once the Destination node is extracted from the Priority Queue, the algorithm stops.
-*   The UI will "backtrack" through the Parent Map to highlight the optimal path in bold colors.
+## 2. Dynamic Constraint System
+The project features a real-time filtering system that allows users to customize pathfinding:
+*   **Node Exclusion:** A scrollable checklist allows users to disable specific nodes. Excluded nodes are marked with a **Red X** on the graph and are skipped by the algorithm.
+*   **Transport Type Filtering:** Users can toggle specific transport modes (Road, Metro, Bus).
+    *   **Road:** Visualized in **Blue**.
+    *   **Metro:** Visualized in **Purple**.
+    *   **Bus:** Visualized in **Orange**.
+*   **Real-time Interaction:** Toggling any filter instantly updates the graph visualization and recomputes active paths.
 
 ---
 
-## ## 4. Performance Analytics
-*After the walkthrough, a summary dashboard will appear:*
+## 3. Visualization & Interface
+The UI is built with **Dear ImGui** and optimized for both native and **WebAssembly** environments.
 
-| Metric | Purpose |
-| :--- | :--- |
-| **Total Path Cost** | Sum of distance, time, and cost in the chosen path. |
-| **Execution Speed** | Measured in microseconds ($\mu s$) using `<chrono>`. |
-| **Nodes Visited** | Total number of nodes processed by the Priority Queue. |
+### **Interactive Graph Canvas**
+*   **Start/End Indicators:** The Start node is highlighted in **Green**, and the End node in **Cyan**.
+*   **Path Highlighting:** The optimal route is rendered with a bold **Green** line.
+*   **Edge Creation:** Users can add nodes and drag connections. A color-coded "wire" (matching the selected creation type) follows the mouse during edge creation.
+*   **Theme Support:** A minimalist **Dark/Light Mode** toggle ensures high contrast and readability across all environments.
+
+### **WebAssembly Capabilities**
+*   **Local File Upload:** Users can upload `.txt` map files directly from their PC to the live browser version using a custom JavaScript/C++ bridge.
+*   **Asset Loading:** Quick access to pre-defined map structures (City, Circular, Grid).
 
 ---
 
-> **Developer Note**: This specification guides the implementation of `main.cpp` using **Dear ImGui** and **WebAssembly** for hosting on GitHub Pages.
+## 4. Performance & Analytics
+The system provides deep insights into the algorithm's execution:
+*   **Results Summary:** Displays the total distance, time, cost, and precise **execution time (ms)** using high-resolution timers.
+*   **Enhanced Trace Table:** A standard representation of the **Relaxation Theorem**.
+    *   Shows step-by-step distance updates.
+    *   Displays **Predecessors** for each node (e.g., `50(B)`).
+    *   Highlights the **currently visited node** in Green to illustrate the Priority Queue extraction process.
+
+---
+
+> **Final Note:** This project demonstrates the practical application of graph theory and Dijkstra's algorithm, providing a robust, interactive tool for urban routing analysis.

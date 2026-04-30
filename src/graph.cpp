@@ -38,10 +38,14 @@ void Graph::applyCircleLayout(float centerX, float centerY, float radius) {
     }
 }
 
-void Graph::updateEdge(int from, int to, double distance, double time, double cost) {
+void Graph::updateEdge(int from, int to, double distance, double time, double cost, std::string type) {
     auto update = [&](int u, int v) {
         for (auto& edge : adj[u]) {
-            if (edge.to == v) { edge.distance = distance; edge.time = time; edge.cost = cost; return; }
+            if (edge.to == v) { 
+                edge.distance = distance; edge.time = time; edge.cost = cost; 
+                if (!type.empty()) edge.type = type;
+                return; 
+            }
         }
     };
     update(from, to); update(to, from);
@@ -84,14 +88,14 @@ bool Graph::loadFromFile(const std::string& filename) {
 bool Graph::saveToFile(const std::string& filename) {
     std::ofstream file(filename);
     if (!file.is_open()) return false;
-    file << "# Node1 Node2 Distance Time Cost\n";
+    file << "# Node1 Node2 Distance Time Cost Type\n";
     std::set<std::pair<int, int>> seen;
     for (auto const& [u, neighbors] : adj) {
         for (auto const& edge : neighbors) {
             int v = edge.to;
             if (seen.count({v, u})) continue;
             file << idToLabel(u) << " " << idToLabel(v) << " " 
-                 << edge.distance << " " << edge.time << " " << edge.cost << "\n";
+                 << edge.distance << " " << edge.time << " " << edge.cost << " " << edge.type << "\n";
             seen.insert({u, v});
         }
     }

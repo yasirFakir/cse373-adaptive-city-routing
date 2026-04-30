@@ -52,7 +52,7 @@ struct NodePos {
 class Graph {
 public:
     void addEdge(int from, int to, double distance, double time, double cost, std::string type = "road");
-    void updateEdge(int from, int to, double distance, double time, double cost);
+    void updateEdge(int from, int to, double distance, double time, double cost, std::string type = "");
     void removeEdge(int from, int to);
     void removeNode(int id);
     bool loadFromFile(const std::string& filename);
