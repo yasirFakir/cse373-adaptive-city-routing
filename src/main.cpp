@@ -14,6 +14,8 @@
 
 #ifdef __EMSCRIPTEN__
 #include <SDL2/SDL.h>
+#include <emscripten.h>
+#include <emscripten/html5.h>
 #else
 #include <SDL.h>
 #endif
@@ -28,10 +30,6 @@
 #include <cstdio>
 #include <memory>
 #include <array>
-#endif
-
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
 #endif
 
 SDL_Window* window = nullptr;
@@ -55,6 +53,49 @@ struct Selection { int from, to; } selectedEdge = {-1, -1};
 
 std::set<int> globallyAvoidedNodes;
 std::set<std::string> globallyAvoidedTypes;
+
+#ifdef __EMSCRIPTEN__
+extern "C" {
+    EMSCRIPTEN_KEEPALIVE
+    void on_file_uploaded() {
+        if (cityGraph.loadFromFile("/uploaded_map.txt")) {
+            cityGraph.applyCircleLayout(1440/2, 900*0.55/2, 250.0f);
+            pathFound = false;
+        }
+    }
+}
+#endif
+
+void TriggerWasmUpload() {
+#ifdef __EMSCRIPTEN__
+    emscripten_run_script(R"(
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.txt';
+        input.onchange = e => {
+            var file = e.target.files[0];
+            var reader = new FileReader();
+            reader.onload = function() {
+                var data = new Uint8Array(reader.result);
+                FS.writeFile('/uploaded_map.txt', data);
+                _on_file_uploaded();
+            };
+            reader.readAsArrayBuffer(file);
+        };
+        input.click();
+    )");
+#endif
+}
+
+void Recompute() {
+    int sId = Graph::labelToId(startLabel), eId = Graph::labelToId(endLabel);
+    if (sId > 0 && eId > 0) { 
+        results[0] = findPath(cityGraph, sId, eId, RouteMode::SHORTEST_DISTANCE, {}, globallyAvoidedNodes, globallyAvoidedTypes); 
+        results[1] = findPath(cityGraph, sId, eId, RouteMode::FASTEST_TIME, {}, globallyAvoidedNodes, globallyAvoidedTypes); 
+        results[2] = findPath(cityGraph, sId, eId, RouteMode::CHEAPEST_ROUTE, {}, globallyAvoidedNodes, globallyAvoidedTypes); 
+        pathFound = true; 
+    }
+}
 
 void ApplyTheme() {
     ImGuiStyle& style = ImGui::GetStyle();
@@ -197,10 +238,7 @@ void main_loop() {
     if (ImGui::Button(isDarkMode ? "LIGHT MODE" : "DARK MODE", ImVec2(140, 30))) isDarkMode = !isDarkMode;
     ImGui::Spacing(); ImGui::TextColored(isDarkMode?ImVec4(0,1,0,1):ImVec4(0,0.5f,0,1), "PATH SETUP");
     ImGui::PushItemWidth(140); ImGui::InputText("Start", startLabel, 16); ImGui::InputText("End", endLabel, 16); ImGui::PopItemWidth();
-    if (ImGui::Button("COMPUTE", ImVec2(140, 35))) {
-        int sId = Graph::labelToId(startLabel), eId = Graph::labelToId(endLabel);
-        if (sId > 0 && eId > 0) { results[0] = findPath(cityGraph, sId, eId, RouteMode::SHORTEST_DISTANCE, {}, globallyAvoidedNodes, globallyAvoidedTypes); results[1] = findPath(cityGraph, sId, eId, RouteMode::FASTEST_TIME, {}, globallyAvoidedNodes, globallyAvoidedTypes); results[2] = findPath(cityGraph, sId, eId, RouteMode::CHEAPEST_ROUTE, {}, globallyAvoidedNodes, globallyAvoidedTypes); pathFound = true; }
-    }
+    if (ImGui::Button("COMPUTE", ImVec2(140, 35))) { Recompute(); }
     ImGui::Spacing(); if (ImGui::Button("ADD NODE", ImVec2(140, 30))) { int mId = 0; for (auto id : cityGraph.getAllNodes()) mId = std::max(mId, id); cityGraph.setNodePos(mId + 1, 200+(rand()%400), 100+(rand()%200)); }
     if (selectedNode != -1 && ImGui::Button("DELETE NODE", ImVec2(140, 30))) { cityGraph.removeNode(selectedNode); selectedNode = -1; pathFound = false; }
     ImGui::Spacing(); ImGui::TextColored(isDarkMode?ImVec4(1,1,0,1):ImVec4(0.5f,0.5f,0,1), "CREATION TYPE");
@@ -208,52 +246,33 @@ void main_loop() {
     ImGui::EndGroup();
     ImGui::SetCursorScreenPos(ImVec2(childPos.x + canvasW - 160, childPos.y + 10)); 
     ImGui::BeginGroup();
-    if (ImGui::Button("IMPORT", ImVec2(140, 30))) {
-#ifdef __EMSCRIPTEN__
-        ImGui::OpenPopup("Select Map");
-#else
-        std::string p = FileDialog(false); if (!p.empty()) { cityGraph.loadFromFile(p); cityGraph.applyCircleLayout(canvasW/2, canvasH/2, 200.0f); pathFound = false; }
-#endif
-    }
+    if (ImGui::Button("IMPORT", ImVec2(140, 30))) { ImGui::OpenPopup("Select Map"); }
     if (ImGui::Button("STORE", ImVec2(140, 30))) {
 #ifndef __EMSCRIPTEN__
         std::string p = FileDialog(true); if (!p.empty()) cityGraph.saveToFile(p);
 #endif
     }
-    
-    // --- CLEAR BUTTON ---
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0, 0, 1));
-    if (ImGui::Button("CLEAR ALL", ImVec2(140, 30))) {
-        cityGraph.getAdjList().clear(); cityGraph.getPositions().clear(); globallyAvoidedNodes.clear(); globallyAvoidedTypes.clear();
-        pathFound = false; startLabel[0] = 'A'; startLabel[1] = '\0'; endLabel[0] = 'C'; endLabel[1] = '\0';
-    }
+    if (ImGui::Button("CLEAR ALL", ImVec2(140, 30))) { cityGraph.getAdjList().clear(); cityGraph.getPositions().clear(); globallyAvoidedNodes.clear(); globallyAvoidedTypes.clear(); pathFound = false; startLabel[0] = 'A'; startLabel[1] = '\0'; endLabel[0] = 'C'; endLabel[1] = '\0'; }
     ImGui::PopStyleColor();
-
     ImGui::Spacing(); ImGui::TextColored(isDarkMode?ImVec4(1,0.4f,0.4f,1):ImVec4(0.8f,0,0,1), "NODE FILTERS");
     ImGui::BeginChild("NF", ImVec2(140, 90), true);
     auto allN = cityGraph.getAllNodes(); std::sort(allN.begin(), allN.end());
-    for (int n : allN) { bool act = globallyAvoidedNodes.count(n); if (ImGui::Checkbox(Graph::idToLabel(n).c_str(), &act)) { if(act) globallyAvoidedNodes.insert(n); else globallyAvoidedNodes.erase(n); pathFound = false; } }
+    for (int n : allN) { bool act = globallyAvoidedNodes.count(n); if (ImGui::Checkbox(Graph::idToLabel(n).c_str(), &act)) { if(act) globallyAvoidedNodes.insert(n); else globallyAvoidedNodes.erase(n); if(pathFound) Recompute(); } }
     ImGui::EndChild();
     ImGui::Spacing(); ImGui::TextColored(isDarkMode?ImVec4(1,0.4f,1,1):ImVec4(0.6f,0,0.6f,1), "TRANSPORT");
     auto TC = [&](const char* l, const char* t, ImVec4 c) {
         bool act = globallyAvoidedTypes.count(t); ImGui::PushStyleColor(ImGuiCol_Text, c);
-        if (ImGui::Checkbox(l, &act)) { if(act) globallyAvoidedTypes.insert(t); else globallyAvoidedTypes.erase(t); pathFound = false; }
+        if (ImGui::Checkbox(l, &act)) { if(act) globallyAvoidedTypes.insert(t); else globallyAvoidedTypes.erase(t); if(pathFound) Recompute(); }
         ImGui::PopStyleColor();
     };
     TC("Road", "road", ImVec4(0,0.6f,1,1)); TC("Metro", "metro", ImVec4(1,0,1,1)); TC("Bus", "bus", ImVec4(1,0.5f,0,1));
     ImGui::EndGroup();
     if (ImGui::BeginPopup("Select Map")) {
         const char* maps[] = { "assets/city_map.txt", "assets/circular_map.txt", "assets/grid_map.txt", "assets/test.txt" };
-        for (int i = 0; i < 4; i++) {
-            if (ImGui::Selectable(maps[i])) {
-                if (cityGraph.loadFromFile(maps[i])) {
-                    cityGraph.applyCircleLayout(canvasW/2, canvasH/2, 200.0f);
-                    pathFound = false;
-                } else {
-                    // Feedback handled in console for now, could add a modal
-                }
-            }
-        }
+        for (int i = 0; i < 4; i++) if (ImGui::Selectable(maps[i])) { if (cityGraph.loadFromFile(maps[i])) { cityGraph.applyCircleLayout(canvasW/2, canvasH/2, 200.0f); pathFound = false; } }
+        ImGui::Separator();
+        if (ImGui::Selectable("UPLOAD FROM PC (.txt)")) { TriggerWasmUpload(); }
         ImGui::EndPopup();
     }
     ImGui::EndChild();
@@ -321,7 +340,7 @@ int main(int, char**) {
 #else
     ImGui_ImplOpenGL3_Init("#version 130");
 #endif
-    cityGraph.loadFromFile("assets/city_map.txt"); cityGraph.applyCircleLayout(1440/2, 900*0.60/2, 250.0f);
+    cityGraph.loadFromFile("assets/city_map.txt"); cityGraph.applyCircleLayout(1440/2, 900*0.55/2, 250.0f);
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(main_loop, 0, 1);
 #else
