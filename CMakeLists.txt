@@ -64,4 +64,10 @@ else()
     find_package(OpenGL REQUIRED)
     add_executable(dijkstra-algorithm ${SOURCES} ${IMGUI_SOURCES})
     target_link_libraries(dijkstra-algorithm PRIVATE SDL2::SDL2 OpenGL::GL)
+
+    # Copy assets to build directory for local execution
+    add_custom_command(TARGET dijkstra-algorithm POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets
+        $<TARGET_FILE_DIR:dijkstra-algorithm>/assets)
 endif()

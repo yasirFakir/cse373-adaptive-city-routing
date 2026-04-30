@@ -21,8 +21,24 @@ void Graph::removeNode(int id) {
 }
 
 void Graph::addEdge(int from, int to, double distance, double time, double cost, std::string type) {
-    if (from <= 0 || to <= 0) return;
+    if (from <= 0 || to <= 0 || from == to) return;
     addNode(from); addNode(to);
+    
+    // Check if edge already exists
+    for (auto& edge : adj[from]) {
+        if (edge.to == to) {
+            edge.distance = distance; edge.time = time; edge.cost = cost; edge.type = type;
+            // Also update the reverse edge
+            for (auto& revEdge : adj[to]) {
+                if (revEdge.to == from) {
+                    revEdge.distance = distance; revEdge.time = time; revEdge.cost = cost; revEdge.type = type;
+                    break;
+                }
+            }
+            return;
+        }
+    }
+
     adj[from].push_back({to, distance, time, cost, type});
     adj[to].push_back({from, distance, time, cost, type});
 }

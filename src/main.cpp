@@ -175,6 +175,11 @@ float DistToSegment(ImVec2 p, ImVec2 v, ImVec2 w) {
 }
 
 void DrawGraph(ImDrawList* drawList, ImVec2 offset, ImVec2 size) {
+    drawList->PushClipRect(offset, ImVec2(offset.x + size.x, offset.y + size.y), true);
+
+    // Background for graph area
+    drawList->AddRectFilled(offset, ImVec2(offset.x + size.x, offset.y + size.y), isDarkMode ? IM_COL32(20, 20, 25, 255) : IM_COL32(230, 230, 235, 255));
+
     auto& positions = cityGraph.getPositions();
     auto& adj = cityGraph.getAdjList();
     ImVec2 mousePos = ImGui::GetMousePos();
@@ -194,9 +199,9 @@ void DrawGraph(ImDrawList* drawList, ImVec2 offset, ImVec2 size) {
                 }
             }
             ImU32 col = isDarkMode ? IM_COL32(180, 180, 180, 150) : IM_COL32(80, 80, 80, 150);
-            if (edge.type == "road") col = IM_COL32(0, 150, 255, 200);      
-            else if (edge.type == "metro") col = IM_COL32(255, 0, 255, 200); 
-            else if (edge.type == "bus") col = IM_COL32(255, 165, 0, 200);   
+            if (edge.type == "road") col = IM_COL32(0, 150, 255, 200);
+            else if (edge.type == "metro") col = IM_COL32(255, 0, 255, 200);
+            else if (edge.type == "bus") col = IM_COL32(255, 165, 0, 200);
             if (isHighlighted) col = IM_COL32(0, 255, 0, 255);
             else if (selectedEdge.from == u && selectedEdge.to == edge.to) col = IM_COL32(255, 255, 0, 255);
             if (DistToSegment(mousePos, p1, p2) < 12.0f) {
@@ -223,11 +228,13 @@ void DrawGraph(ImDrawList* drawList, ImVec2 offset, ImVec2 size) {
         else if (currentCreationType == CreationType::BUS) wireCol = IM_COL32(255, 165, 0, 255);
         drawList->AddLine(p1, mousePos, wireCol, 2.5f);
     }
+    bool hoveredAnyNode = false;
     for (auto& [id, pos] : positions) {
         ImVec2 p = {pos.x + offset.x, pos.y + offset.y};
         float radius = 22.0f;
         bool isAvoided = globallyAvoidedNodes.count(id);
         bool hovered = sqrt(pow(mousePos.x - p.x, 2) + pow(mousePos.y - p.y, 2)) < radius;
+        if (hovered) hoveredAnyNode = true;
         if (hovered && ImGui::IsMouseDown(0) && draggingEdgeFrom == -1 && draggedNode == -1) draggedNode = id;
         if (hovered && ImGui::IsMouseDown(1) && draggingEdgeFrom == -1) draggingEdgeFrom = id;
         if (draggedNode == id) { 
@@ -246,6 +253,18 @@ void DrawGraph(ImDrawList* drawList, ImVec2 offset, ImVec2 size) {
         if (isAvoided) { float s = radius*0.5f; drawList->AddLine({p.x-s,p.y-s},{p.x+s,p.y+s},borderCol,3.0f); drawList->AddLine({p.x+s,p.y-s},{p.x-s,p.y+s},borderCol,3.0f); }
         drawList->AddText({p.x - ImGui::CalcTextSize(label.c_str()).x/2, p.y - ImGui::CalcTextSize(label.c_str()).y/2}, (selectedNode==id)?IM_COL32(0,0,0,255):primaryColor, label.c_str());
     }
+
+    if (mouseDoubleClicked && !hoveredAnyNode) {
+        // Check if mouse is inside graph area
+        if (mousePos.x >= offset.x && mousePos.x <= offset.x + size.x &&
+            mousePos.y >= offset.y && mousePos.y <= offset.y + size.y) {
+            int maxId = 0;
+            for (auto const& [id, _] : positions) if (id > maxId) maxId = id;
+            cityGraph.setNodePos(maxId + 1, mousePos.x - offset.x, mousePos.y - offset.y);
+        }
+    }
+
+    drawList->PopClipRect();
     if (!ImGui::IsMouseDown(1)) {
         if (draggingEdgeFrom != -1) {
             for (auto& [id, pos] : positions) {
@@ -281,10 +300,14 @@ void main_loop() {
     ImGui::SetNextWindowPos(ImVec2(0, 0)); ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
     ImGui::Begin("Site", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
     bool isMobile = ImGui::GetIO().DisplaySize.x < 768.0f;
-    float canvasH = ImGui::GetIO().DisplaySize.y * (isMobile ? 0.45f : 0.55f);
+    float canvasH = ImGui::GetIO().DisplaySize.y * (isMobile ? 0.55f : 0.65f);
     float canvasW = ImGui::GetIO().DisplaySize.x;
-    lastCanvasW = canvasW;
-    lastCanvasH = canvasH;
+    
+    // Auto-layout adjustment on resize
+    if (std::abs(lastCanvasW - canvasW) > 5.0f || std::abs(lastCanvasH - canvasH) > 5.0f) {
+        lastCanvasW = canvasW; lastCanvasH = canvasH;
+        cityGraph.applyCircleLayout(canvasW/2, canvasH/2, std::min(canvasW, canvasH) * 0.35f);
+    }
     
     ImGui::BeginChild("GraphArea", ImVec2(0, canvasH), true, ImGuiWindowFlags_NoScrollbar);
     ImVec2 childPos = ImGui::GetCursorScreenPos(); DrawGraph(ImGui::GetWindowDrawList(), childPos, ImVec2(canvasW, canvasH));
@@ -296,7 +319,23 @@ void main_loop() {
     if (!isMobile) {
         ImGui::Spacing(); ImGui::TextColored(isDarkMode?ImVec4(0,1,0,1):ImVec4(0,0.5f,0,1), "PATH SETUP");
         ImGui::PushItemWidth(100); ImGui::InputText("Start", startLabel, 16); ImGui::InputText("End", endLabel, 16); ImGui::PopItemWidth();
+        
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0.6f, 0, 1));
         if (ImGui::Button("COMPUTE", ImVec2(100, 30))) { Recompute(); }
+        ImGui::PopStyleColor();
+
+        ImGui::SameLine();
+        if (ImGui::Button("ADD NODE", ImVec2(80, 30))) { 
+            int maxId = 0;
+            for (auto const& [id, _] : cityGraph.getPositions()) if (id > maxId) maxId = id;
+            cityGraph.setNodePos(maxId + 1, canvasW/2, canvasH/2);
+        }
+        
+        ImGui::Spacing();
+        ImGui::TextColored(isDarkMode?ImVec4(1,1,0,1):ImVec4(0.5f,0.5f,0,1), "CREATION");
+        ImGui::RadioButton("Road", (int*)&currentCreationType, 0); ImGui::SameLine();
+        ImGui::RadioButton("Metro", (int*)&currentCreationType, 1); ImGui::SameLine();
+        ImGui::RadioButton("Bus", (int*)&currentCreationType, 2);
     }
     ImGui::EndGroup();
 
@@ -309,7 +348,18 @@ void main_loop() {
             if (ImGui::BeginPopup("MobileMenu")) {
                 if (ImGui::Button("COMPUTE", ImVec2(120, 30))) { Recompute(); ImGui::CloseCurrentPopup(); }
                 ImGui::Separator();
+                if (ImGui::Button("ADD NODE", ImVec2(120, 30))) { 
+                    int maxId = 0;
+                    for (auto const& [id, _] : cityGraph.getPositions()) if (id > maxId) maxId = id;
+                    cityGraph.setNodePos(maxId + 1, canvasW/2, canvasH/2);
+                }
+                ImGui::Separator();
                 ImGui::InputText("Start", startLabel, 16); ImGui::InputText("End", endLabel, 16);
+                ImGui::Separator();
+                ImGui::Text("Creation Mode:");
+                ImGui::RadioButton("Road", (int*)&currentCreationType, 0); ImGui::SameLine();
+                ImGui::RadioButton("Metro", (int*)&currentCreationType, 1); ImGui::SameLine();
+                ImGui::RadioButton("Bus", (int*)&currentCreationType, 2);
                 ImGui::Separator();
                 if (ImGui::Button("IMPORT", ImVec2(120, 30))) {
 #ifdef __EMSCRIPTEN__
@@ -320,10 +370,11 @@ void main_loop() {
                 }
                 if (ImGui::Button("STORE", ImVec2(120, 30))) { TriggerWasmDownload(); ImGui::CloseCurrentPopup(); }
                 ImGui::Separator();
-                ImGui::Text("Filters:");
+                ImGui::Text("Node Filters:");
                 auto allN = cityGraph.getAllNodes(); std::sort(allN.begin(), allN.end());
                 for (int n : allN) { bool act = !globallyAvoidedNodes.count(n); if (ImGui::Checkbox(Graph::idToLabel(n).c_str(), &act)) { if(!act) globallyAvoidedNodes.insert(n); else globallyAvoidedNodes.erase(n); if(pathFound) Recompute(); } }
                 ImGui::Separator();
+                ImGui::Text("Transport Filters:");
                 auto TC = [&](const char* l, const char* t, ImVec4 c) {
                     bool act = !globallyAvoidedTypes.count(t); ImGui::PushStyleColor(ImGuiCol_Text, c);
                     if (ImGui::Checkbox(l, &act)) { if (!act) globallyAvoidedTypes.insert(t); else globallyAvoidedTypes.erase(t); if (pathFound) Recompute(); }
@@ -347,17 +398,19 @@ void main_loop() {
                 std::string p = FileDialog(true); if (!p.empty()) cityGraph.saveToFile(p);
 #endif
             }
+            
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0, 0, 1));
             if (ImGui::Button("CLEAR ALL", ImVec2(140, 30))) { cityGraph.getAdjList().clear(); cityGraph.getPositions().clear(); globallyAvoidedNodes.clear(); globallyAvoidedTypes.clear(); pathFound = false; startLabel[0] = 'A'; startLabel[1] = '\0'; endLabel[0] = 'C'; endLabel[1] = '\0'; }
             ImGui::PopStyleColor();
             
-            ImGui::Spacing(); ImGui::TextColored(isDarkMode?ImVec4(1,0.4f,0.4f,1):ImVec4(0.8f,0,0,1), "FILTERS");
-            if (ImGui::BeginChild("Filters", ImVec2(140, 150), true)) {
-                ImGui::Text("Nodes:");
+            ImGui::Spacing(); ImGui::TextColored(isDarkMode?ImVec4(1,0.4f,0.4f,1):ImVec4(0.8f,0,0,1), "NODE FILTERS");
+            if (ImGui::BeginChild("NodeFilters", ImVec2(140, 100), true)) {
                 auto allN = cityGraph.getAllNodes(); std::sort(allN.begin(), allN.end());
                 for (int n : allN) { bool act = !globallyAvoidedNodes.count(n); if (ImGui::Checkbox(Graph::idToLabel(n).c_str(), &act)) { if(!act) globallyAvoidedNodes.insert(n); else globallyAvoidedNodes.erase(n); if(pathFound) Recompute(); } }
-                ImGui::Separator();
-                ImGui::Text("Transport:");
+                ImGui::EndChild();
+            }
+            ImGui::Spacing(); ImGui::TextColored(isDarkMode?ImVec4(1,0.4f,0.4f,1):ImVec4(0.8f,0,0,1), "TRANSPORT FILTERS");
+            if (ImGui::BeginChild("TypeFilters", ImVec2(140, 85), true)) {
                 auto TC = [&](const char* l, const char* t, ImVec4 c) {
                     bool act = !globallyAvoidedTypes.count(t); ImGui::PushStyleColor(ImGuiCol_Text, c);
                     if (ImGui::Checkbox(l, &act)) { if (!act) globallyAvoidedTypes.insert(t); else globallyAvoidedTypes.erase(t); if (pathFound) Recompute(); }
@@ -367,17 +420,6 @@ void main_loop() {
                 ImGui::EndChild();
             }
         }
-        ImGui::EndGroup();
-    }
-
-    if (!isMobile) {
-        // ... (existing path setup/creation type UI for desktop)
-        ImGui::SetCursorScreenPos(ImVec2(childPos.x + 10, childPos.y + 120));
-        ImGui::BeginGroup();
-        ImGui::TextColored(isDarkMode?ImVec4(1,1,0,1):ImVec4(0.5f,0.5f,0,1), "CREATION");
-        ImGui::RadioButton("Road", (int*)&currentCreationType, 0); ImGui::SameLine();
-        ImGui::RadioButton("Metro", (int*)&currentCreationType, 1); ImGui::SameLine();
-        ImGui::RadioButton("Bus", (int*)&currentCreationType, 2);
         ImGui::EndGroup();
     }
 
@@ -395,7 +437,7 @@ void main_loop() {
     if (isMobile) {
         // Mobile Path Controls below the graph
         ImGui::BeginGroup();
-        ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.45f);
+        ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.40f);
         ImGui::InputText("Start", startLabel, 16); ImGui::SameLine();
         ImGui::InputText("End", endLabel, 16);
         ImGui::PopItemWidth();
@@ -405,8 +447,10 @@ void main_loop() {
         ImGui::Separator();
     }
 
+    // Results and Trace Area in a scrollable child
+    ImGui::BeginChild("BottomSection", ImVec2(0, 0), false, ImGuiWindowFlags_None);
     if (!isMobile) {
-        ImGui::Columns(2, "Bottom", true); ImGui::SetColumnWidth(0, 450.0f);
+        ImGui::Columns(2, "BottomCols", true); ImGui::SetColumnWidth(0, 450.0f);
     }
 
     {
@@ -427,13 +471,15 @@ void main_loop() {
             else { for(int i=0; i<3; i++) if(results[i].found) { ImGui::TextColored(isDarkMode?ImVec4(0.5f,1,0.5f,1):ImVec4(0,0.5f,0,1), "%s Path:", i==0?"Shortest":i==1?"Fastest":"Cheapest"); std::string p = ""; for(size_t n=0; n<results[i].nodes.size(); n++) p += Graph::idToLabel(results[i].nodes[n]) + (n==results[i].nodes.size()-1?"":" -> "); ImGui::TextWrapped("%s", p.c_str()); } }
         }
     }
+    
     if (!isMobile) ImGui::NextColumn(); else ImGui::Separator();
+    
     {
         ImGui::TextColored(isDarkMode?ImVec4(1,0.8f,0,1):ImVec4(0.7f,0.5f,0,1), "RELAXATION TRACE");
         const char* mNs[] = {"Distance", "Time", "Cost"}; ImGui::SetNextItemWidth(120); ImGui::Combo("Metric", &tableMode, mNs, 3);
         if (pathFound && results[tableMode].found) {
             auto nodes = cityGraph.getAllNodes(); std::sort(nodes.begin(), nodes.end());
-            if (ImGui::BeginTable("Trace", (int)nodes.size() + 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX, ImVec2(0, isMobile ? 200 : 150))) {
+            if (ImGui::BeginTable("Trace", (int)nodes.size() + 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX)) {
                 ImGui::TableSetupColumn("Step"); ImGui::TableSetupColumn("Node"); for (int n : nodes) ImGui::TableSetupColumn(Graph::idToLabel(n).c_str(), ImGuiTableColumnFlags_WidthFixed, 45); ImGui::TableHeadersRow();
                 for (size_t i = 0; i < results[tableMode].relaxationTable.size(); i++) {
                     const auto& s = results[tableMode].relaxationTable[i]; ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("%zu", i); ImGui::TableSetColumnIndex(1); ImGui::Text("%s", Graph::idToLabel(s.visitedNode).c_str());
@@ -454,7 +500,8 @@ void main_loop() {
         }
     }
     if (!isMobile) ImGui::Columns(1);
-    ImGui::End();
+    ImGui::EndChild(); // End BottomSection
+    ImGui::End(); // End Site
     ImGui::Render();
     glViewport(0, 0, (int)ImGui::GetIO().DisplaySize.x, (int)ImGui::GetIO().DisplaySize.y);
     glClearColor(isDarkMode ? 0.05f : 0.95f, isDarkMode ? 0.05f : 0.95f, isDarkMode ? 0.05f : 0.95f, 1.00f);
