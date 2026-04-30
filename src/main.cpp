@@ -362,11 +362,7 @@ void main_loop() {
                 ImGui::RadioButton("Bus", (int*)&currentCreationType, 2);
                 ImGui::Separator();
                 if (ImGui::Button("IMPORT", ImVec2(120, 30))) {
-#ifdef __EMSCRIPTEN__
-                    TriggerWasmUpload();
-#else
                     ImGui::OpenPopup("Select Map");
-#endif
                 }
                 if (ImGui::Button("STORE", ImVec2(120, 30))) { TriggerWasmDownload(); ImGui::CloseCurrentPopup(); }
                 ImGui::Separator();
@@ -385,11 +381,7 @@ void main_loop() {
             }
         } else {
             if (ImGui::Button("IMPORT", ImVec2(140, 30))) {
-#ifdef __EMSCRIPTEN__
-                TriggerWasmUpload();
-#else
                 ImGui::OpenPopup("Select Map");
-#endif
             }
             if (ImGui::Button("STORE", ImVec2(140, 30))) {
 #ifdef __EMSCRIPTEN__
@@ -424,11 +416,21 @@ void main_loop() {
     }
 
     if (ImGui::BeginPopup("Select Map")) {
-#if !defined(__EMSCRIPTEN__) && !defined(EMSCRIPTEN)
+#ifdef __EMSCRIPTEN__
+        const char* maps[] = { "/assets/city_map.txt", "/assets/circular_map.txt", "/assets/grid_map.txt", "/assets/test.txt" };
+#else
         const char* maps[] = { "assets/city_map.txt", "assets/circular_map.txt", "assets/grid_map.txt", "assets/test.txt" };
-        for (int i = 0; i < 4; i++) if (ImGui::Selectable(maps[i])) { if (cityGraph.loadFromFile(maps[i])) { float r = std::min(canvasW, canvasH) * 0.35f; cityGraph.applyCircleLayout(canvasW/2, canvasH/2, r); pathFound = false; } }
-        ImGui::Separator();
 #endif
+        for (int i = 0; i < 4; i++) {
+            if (ImGui::Selectable(maps[i])) { 
+                if (cityGraph.loadFromFile(maps[i])) { 
+                    float r = std::min(canvasW, canvasH) * 0.35f; 
+                    cityGraph.applyCircleLayout(canvasW/2, canvasH/2, r); 
+                    pathFound = false; 
+                } 
+            }
+        }
+        ImGui::Separator();
         if (ImGui::Selectable("UPLOAD FROM PC (.txt)")) { TriggerWasmUpload(); }
         ImGui::EndPopup();
     }
@@ -503,7 +505,9 @@ void main_loop() {
     ImGui::EndChild(); // End BottomSection
     ImGui::End(); // End Site
     ImGui::Render();
-    glViewport(0, 0, (int)ImGui::GetIO().DisplaySize.x, (int)ImGui::GetIO().DisplaySize.y);
+    int dw, dh;
+    SDL_GL_GetDrawableSize(window, &dw, &dh);
+    glViewport(0, 0, dw, dh);
     glClearColor(isDarkMode ? 0.05f : 0.95f, isDarkMode ? 0.05f : 0.95f, isDarkMode ? 0.05f : 0.95f, 1.00f);
     glClear(GL_COLOR_BUFFER_BIT); ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData()); SDL_GL_SwapWindow(window);
 }
@@ -513,7 +517,7 @@ int main(int, char**) {
 #ifdef __EMSCRIPTEN__
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3); SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 #endif
-    window = SDL_CreateWindow("dijkstra-algorithm", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1440, 900, SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
+    window = SDL_CreateWindow("dijkstra-algorithm", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1440, 900, SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE|SDL_WINDOW_ALLOW_HIGHDPI);
     gl_context = SDL_GL_CreateContext(window); IMGUI_CHECKVERSION(); ImGui::CreateContext(); ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
 #ifdef __EMSCRIPTEN__
     ImGui_ImplOpenGL3_Init("#version 300 es");
