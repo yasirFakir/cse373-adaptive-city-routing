@@ -81,6 +81,25 @@ std::string FileDialog(bool save) {
     return "";
 }
 
+void TriggerWasmDownload() {
+#ifdef __EMSCRIPTEN__
+    if (cityGraph.saveToFile("/map_save.txt")) {
+        emscripten_run_script(R"(
+            const content = FS.readFile('/map_save.txt');
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'city_map.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        )");
+    }
+#endif
+}
+
 void TriggerWasmUpload() {
 #ifdef __EMSCRIPTEN__
     emscripten_run_script(R"(
@@ -256,7 +275,9 @@ void main_loop() {
     ImGui::BeginGroup();
     if (ImGui::Button("IMPORT", ImVec2(140, 30))) { ImGui::OpenPopup("Select Map"); }
     if (ImGui::Button("STORE", ImVec2(140, 30))) {
-#ifndef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__
+        TriggerWasmDownload();
+#else
         std::string p = FileDialog(true); if (!p.empty()) cityGraph.saveToFile(p);
 #endif
     }
@@ -282,11 +303,7 @@ void main_loop() {
     TC("Road Filter", "road", ImVec4(0,0.6f,1,1)); TC("Metro Filter", "metro", ImVec4(1,0,1,1)); TC("Bus Filter", "bus", ImVec4(1,0.5f,0,1));
     ImGui::EndGroup();
     if (ImGui::BeginPopup("Select Map")) {
-#ifdef __EMSCRIPTEN__
-        const char* maps[] = { "/assets/city_map.txt", "/assets/circular_map.txt", "/assets/grid_map.txt", "/assets/test.txt" };
-#else
         const char* maps[] = { "assets/city_map.txt", "assets/circular_map.txt", "assets/grid_map.txt", "assets/test.txt" };
-#endif
         for (int i = 0; i < 4; i++) if (ImGui::Selectable(maps[i])) { if (cityGraph.loadFromFile(maps[i])) { cityGraph.applyCircleLayout(canvasW/2, canvasH/2, 200.0f); pathFound = false; } }
         ImGui::Separator();
         if (ImGui::Selectable("UPLOAD FROM PC (.txt)")) { TriggerWasmUpload(); }
@@ -357,11 +374,7 @@ int main(int, char**) {
 #else
     ImGui_ImplOpenGL3_Init("#version 130");
 #endif
-#ifdef __EMSCRIPTEN__
-    cityGraph.loadFromFile("/assets/city_map.txt");
-#else
     cityGraph.loadFromFile("assets/city_map.txt");
-#endif
     cityGraph.applyCircleLayout(1440/2, 900*0.55/2, 250.0f);
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(main_loop, 0, 1);
