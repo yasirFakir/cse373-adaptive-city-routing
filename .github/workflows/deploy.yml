@@ -42,11 +42,11 @@ jobs:
         run: |
           mkdir public
           cp web/index.html public/
-          cp build_wasm/CSE373-Adaptive-City-Routing.js public/
-          cp build_wasm/CSE373-Adaptive-City-Routing.wasm public/
+          cp build_wasm/dijkstra-algorithm.js public/
+          cp build_wasm/dijkstra-algorithm.wasm public/
           # Only copy .data if it exists (it might not if assets are empty)
-          if [ -f build_wasm/CSE373-Adaptive-City-Routing.data ]; then
-            cp build_wasm/CSE373-Adaptive-City-Routing.data public/
+          if [ -f build_wasm/dijkstra-algorithm.data ]; then
+            cp build_wasm/dijkstra-algorithm.data public/
           fi
           touch public/.nojekyll
 
