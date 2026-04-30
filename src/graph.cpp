@@ -32,7 +32,9 @@ void Graph::applyCircleLayout(float centerX, float centerY, float radius) {
     if (nodes.empty()) return;
     float angleStep = 2.0f * 3.14159f / (float)nodes.size();
     for (size_t i = 0; i < nodes.size(); ++i) {
-        nodePositions[nodes[i]] = { centerX + radius * cos(i * angleStep), centerY + radius * sin(i * angleStep) };
+        float x = centerX + radius * std::cos((float)i * angleStep);
+        float y = centerY + radius * std::sin((float)i * angleStep);
+        nodePositions[nodes[i]] = { x, y };
     }
 }
 
