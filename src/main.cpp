@@ -185,38 +185,85 @@ void main_loop() {
     ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
     ImGui::Begin("Site", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
 
+    // --- TOP BAR (Dark Mode & File Ops) ---
+    ImGui::Checkbox("Dark Mode", &isDarkMode);
+    ImGui::SameLine(ImGui::GetIO().DisplaySize.x - 340);
+
+    if (ImGui::Button("IMPORT MAP", ImVec2(160, 30))) {
+    #ifdef __EMSCRIPTEN__
+        ImGui::OpenPopup("Select Map");
+    #else
+        std::string p = FileDialog(false);
+        if (!p.empty()) { cityGraph.loadFromFile(p); cityGraph.applyCircleLayout(ImGui::GetIO().DisplaySize.x/2, ImGui::GetIO().DisplaySize.y*0.3f, 200.0f); pathFound = false; }
+    #endif
+    }
+
+    if (ImGui::BeginPopup("Select Map")) {
+        const char* maps[] = { "assets/city_map.txt", "assets/circular_map.txt", "assets/grid_map.txt", "assets/test.txt" };
+        for (int i = 0; i < 4; i++) {
+            if (ImGui::Selectable(maps[i])) {
+                cityGraph.loadFromFile(maps[i]);
+                cityGraph.applyCircleLayout(ImGui::GetIO().DisplaySize.x/2, (ImGui::GetIO().DisplaySize.y * 0.6f)/2, 200.0f);
+                pathFound = false;
+            }
+        }
+        ImGui::EndPopup();
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("STORE MAP", ImVec2(160, 30))) {
+    #ifndef __EMSCRIPTEN__
+        std::string p = FileDialog(true);
+        if (!p.empty()) cityGraph.saveToFile(p);
+    #endif
+    }
+
     float canvasHeight = ImGui::GetIO().DisplaySize.y * 0.60f;
     ImGui::BeginChild("GraphArea", ImVec2(0, canvasHeight), true, ImGuiWindowFlags_NoScrollbar);
     DrawGraph(ImGui::GetWindowDrawList(), ImGui::GetCursorScreenPos(), ImVec2(ImGui::GetIO().DisplaySize.x, canvasHeight));
-    
-    ImGui::SetCursorPos(ImVec2(ImGui::GetIO().DisplaySize.x - 340, 10));
-    if (ImGui::Button("IMPORT MAP", ImVec2(160, 30))) {
-        std::string p = FileDialog(false);
-        if (!p.empty()) { cityGraph.loadFromFile(p); cityGraph.applyCircleLayout(ImGui::GetIO().DisplaySize.x/2, canvasHeight/2, 200.0f); pathFound = false; }
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("STORE MAP", ImVec2(160, 30))) {
-        std::string p = FileDialog(true);
-        if (!p.empty()) cityGraph.saveToFile(p);
-    }
     ImGui::EndChild();
-    
+
     ImGui::Columns(3, "Layout", true);
     ImGui::SetColumnWidth(0, 320.0f);
     {
         ImGui::TextColored(ImVec4(0, 0.7f, 1, 1), "DIJKSTRA ALGORITHM");
-        ImGui::Checkbox("Dark Mode", &isDarkMode);
         ImGui::Separator();
         ImGui::InputText("Start Node", startLabel, 16);
         for(int i=0; startLabel[i]; i++) startLabel[i] = (char)toupper(startLabel[i]);
         ImGui::InputText("End Node", endLabel, 16);
         for(int i=0; endLabel[i]; i++) endLabel[i] = (char)toupper(endLabel[i]);
 
+        // --- CONSTRAINTS ---
+        static char avoidNodesBuf[64] = "";
+        ImGui::InputText("Avoid Nodes (A,B)", avoidNodesBuf, 64);
+        static bool avoidRoad = false, avoidMetro = false, avoidBus = false;
+        ImGui::Checkbox("Avoid Road", &avoidRoad); ImGui::SameLine();
+        ImGui::Checkbox("Avoid Metro", &avoidMetro);
+        ImGui::Checkbox("Avoid Bus", &avoidBus);
+
         if (ImGui::Button("COMPUTE ALL", ImVec2(-1, 35))) {
             int sId = Graph::labelToId(startLabel), eId = Graph::labelToId(endLabel);
-            if (sId > 0 && eId > 0) { results[0] = findPath(cityGraph, sId, eId, RouteMode::SHORTEST_DISTANCE); results[1] = findPath(cityGraph, sId, eId, RouteMode::FASTEST_TIME); results[2] = findPath(cityGraph, sId, eId, RouteMode::CHEAPEST_ROUTE); pathFound = true; }
-        }
-        if (selectedNode != -1 && ImGui::Button("DELETE NODE", ImVec2(-1, 30))) { cityGraph.removeNode(selectedNode); selectedNode = -1; pathFound = false; }
+            if (sId > 0 && eId > 0) { 
+                std::set<int> avoidedNodes;
+                std::string buf = avoidNodesBuf;
+                size_t pos = 0;
+                while ((pos = buf.find(',')) != std::string::npos) {
+                    avoidedNodes.insert(Graph::labelToId(buf.substr(0, pos)));
+                    buf.erase(0, pos + 1);
+                }
+                if(!buf.empty()) avoidedNodes.insert(Graph::labelToId(buf));
+
+                std::set<std::string> avoidedTypes;
+                if (avoidRoad) avoidedTypes.insert("road");
+                if (avoidMetro) avoidedTypes.insert("metro");
+                if (avoidBus) avoidedTypes.insert("bus");
+
+                results[0] = findPath(cityGraph, sId, eId, RouteMode::SHORTEST_DISTANCE, {}, avoidedNodes, avoidedTypes); 
+                results[1] = findPath(cityGraph, sId, eId, RouteMode::FASTEST_TIME, {}, avoidedNodes, avoidedTypes); 
+                results[2] = findPath(cityGraph, sId, eId, RouteMode::CHEAPEST_ROUTE, {}, avoidedNodes, avoidedTypes); 
+                pathFound = true; 
+            }
+        }        if (selectedNode != -1 && ImGui::Button("DELETE NODE", ImVec2(-1, 30))) { cityGraph.removeNode(selectedNode); selectedNode = -1; pathFound = false; }
         if (selectedEdge.from != -1 && ImGui::Button("DELETE EDGE", ImVec2(-1, 30))) { cityGraph.removeEdge(selectedEdge.from, selectedEdge.to); selectedEdge = {-1, -1}; pathFound = false; }
         if (ImGui::Button("Add New Node", ImVec2(-1, 30))) { int maxId = 0; auto all = cityGraph.getAllNodes(); for (auto id : all) maxId = std::max(maxId, id); cityGraph.setNodePos(maxId + 1, 200+(rand()%400), 100+(rand()%200)); }
     }
