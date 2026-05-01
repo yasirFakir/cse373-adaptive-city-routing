@@ -619,6 +619,7 @@ int main(int, char**) {
         }
     }
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
+#ifdef __EMSCRIPTEN__
     ImGui_ImplOpenGL3_Init("#version 300 es");
 #else
     ImGui_ImplOpenGL3_Init("#version 130");
