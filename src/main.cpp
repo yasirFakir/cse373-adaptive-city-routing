@@ -594,7 +594,7 @@ int main(int, char**) {
     {
         ImFontConfig config;
         config.FontDataOwnedByAtlas = false; // Data is in static memory
-        ImFont* robotoFont = io.Fonts->AddFontFromMemoryTTF(assets_Roboto_Regular_ttf, assets_Roboto_Regular_ttf_len, 18.0f, &config);
+        ImFont* robotoFont = io.Fonts->AddFontFromMemoryTTF(Roboto_Regular_ttf, Roboto_Regular_ttf_len, 18.0f, &config);
         if (robotoFont) io.FontDefault = robotoFont;
     }
 
@@ -606,7 +606,7 @@ int main(int, char**) {
 #endif
     
     // 3. Load Map from embedded array (100% reliable)
-    cityGraph.loadFromData(std::string((char*)assets_city_map_txt, assets_city_map_txt_len));
+    cityGraph.loadFromData(std::string((char*)city_map_txt, city_map_txt_len));
 
     cityGraph.applyCircleLayout(lastCanvasW/2, lastCanvasH/2, std::min(lastCanvasW, lastCanvasH) * 0.35f);
 #ifdef __EMSCRIPTEN__
