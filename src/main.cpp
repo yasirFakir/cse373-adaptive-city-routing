@@ -584,22 +584,31 @@ int main(int, char**) {
     gl_context = SDL_GL_CreateContext(window); IMGUI_CHECKVERSION(); ImGui::CreateContext(); 
     ImGuiIO& io = ImGui::GetIO();
     ImFont* font = nullptr;
+    
+    // Always add the default font first as a safe fallback
+    io.Fonts->AddFontDefault();
+
 #ifdef __EMSCRIPTEN__
-    font = io.Fonts->AddFontFromFileTTF("/assets/Roboto-Regular.ttf", 18.0f);
+    const char* robotoPath = "/assets/Roboto-Regular.ttf";
 #else
-    // Try multiple paths for local execution
-    const char* fontPaths[] = { "assets/Roboto-Regular.ttf", "../assets/Roboto-Regular.ttf", "build/assets/Roboto-Regular.ttf" };
-    for (const char* path : fontPaths) {
-        std::ifstream f(path);
-        if (f.good()) {
-            font = io.Fonts->AddFontFromFileTTF(path, 18.0f);
-            if (font) break;
-        }
-    }
+    const char* robotoPath = "assets/Roboto-Regular.ttf";
 #endif
-    if (!font) {
-        std::cerr << "Warning: Could not load Roboto-Regular.ttf, falling back to default font." << std::endl;
-        io.Fonts->AddFontDefault();
+
+    // Defensive font loading
+    std::ifstream f(robotoPath, std::ios::binary | std::ios::ate);
+    if (f.good()) {
+        long size = f.tellg();
+        f.close();
+        if (size > 1000) { // Ensure it's not an empty or tiny file
+            font = io.Fonts->AddFontFromFileTTF(robotoPath, 18.0f);
+            if (font) {
+                std::cout << "Successfully loaded Roboto font (" << size << " bytes)" << std::endl;
+            }
+        } else {
+            std::cerr << "Warning: Roboto font file is too small (" << size << " bytes)" << std::endl;
+        }
+    } else {
+        std::cerr << "Warning: Could not open Roboto font file at " << robotoPath << std::endl;
     }
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
 #ifdef __EMSCRIPTEN__
