@@ -561,7 +561,7 @@ void main_loop() {
     ImGui::EndChild(); // End BottomSection
 
     // Footer - Repositioned to bottom-right without separator
-    const char* footerText = "Developed by Yasir | Design and Analysis of Algorithms";
+    const char* footerText = "Developed by Yasir | CSE373 Design and Analysis of Algorithms";
     ImVec2 footerSize = ImGui::CalcTextSize(footerText);
     ImGui::SetCursorPos(ImVec2(ImGui::GetIO().DisplaySize.x - footerSize.x - 20, ImGui::GetIO().DisplaySize.y - footerSize.y - 10));
     ImGui::TextDisabled("%s", footerText);
@@ -584,9 +584,6 @@ int main(int, char**) {
     gl_context = SDL_GL_CreateContext(window); IMGUI_CHECKVERSION(); ImGui::CreateContext(); 
     ImGuiIO& io = ImGui::GetIO();
     ImFont* font = nullptr;
-    
-    // Always add the default font first as a safe fallback
-    io.Fonts->AddFontDefault();
 
 #ifdef __EMSCRIPTEN__
     const char* robotoPath = "/assets/Roboto-Regular.ttf";
@@ -594,21 +591,20 @@ int main(int, char**) {
     const char* robotoPath = "assets/Roboto-Regular.ttf";
 #endif
 
-    // Defensive font loading
+    // Defensive font loading: Try Roboto first
     std::ifstream f(robotoPath, std::ios::binary | std::ios::ate);
     if (f.good()) {
         long size = f.tellg();
         f.close();
-        if (size > 1000) { // Ensure it's not an empty or tiny file
+        if (size > 1000) { 
             font = io.Fonts->AddFontFromFileTTF(robotoPath, 18.0f);
-            if (font) {
-                std::cout << "Successfully loaded Roboto font (" << size << " bytes)" << std::endl;
-            }
-        } else {
-            std::cerr << "Warning: Roboto font file is too small (" << size << " bytes)" << std::endl;
         }
-    } else {
-        std::cerr << "Warning: Could not open Roboto font file at " << robotoPath << std::endl;
+    }
+
+    // Fallback: If Roboto failed, load the default font
+    if (!font) {
+        std::cerr << "Warning: Falling back to default font." << std::endl;
+        io.Fonts->AddFontDefault();
     }
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
 #ifdef __EMSCRIPTEN__
