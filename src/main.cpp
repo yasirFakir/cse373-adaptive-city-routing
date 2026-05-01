@@ -362,7 +362,7 @@ void main_loop() {
     ImGui::Begin("Site", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
     
     // Header Title
-    ImGui::TextColored(isDarkMode ? ImVec4(0.3f, 0.8f, 1.0f, 1.0f) : ImVec4(0.0f, 0.4f, 0.8f, 1.0f), "CITY ROUTING VISUALIZER - DIJKSTRA ALGORITHM");
+    ImGui::TextColored(isDarkMode ? ImVec4(0.3f, 0.8f, 1.0f, 1.0f) : ImVec4(0.0f, 0.4f, 0.8f, 1.0f), "ADAPTIVE MULTI-CONSTRAINT CITY ROUTING SYSTEM USING DIJKSTRA'S ALGORITHM");
     ImGui::SameLine(ImGui::GetIO().DisplaySize.x - 100);
     if (ImGui::Button("HELP", ImVec2(80, 25))) showHelp = true;
 
