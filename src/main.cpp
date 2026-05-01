@@ -583,28 +583,36 @@ int main(int, char**) {
     window = SDL_CreateWindow("dijkstra-algorithm", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1440, 900, SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE|SDL_WINDOW_ALLOW_HIGHDPI);
     gl_context = SDL_GL_CreateContext(window); IMGUI_CHECKVERSION(); ImGui::CreateContext(); 
     ImGuiIO& io = ImGui::GetIO();
-    ImFont* font = nullptr;
+    
+    // 1. Load default font first (guaranteed to work, becomes default at index 0)
+    io.Fonts->AddFontDefault();
 
+    // 2. Try to load Roboto defensively to avoid assertion crashes
 #ifdef __EMSCRIPTEN__
     const char* robotoPath = "/assets/Roboto-Regular.ttf";
 #else
     const char* robotoPath = "assets/Roboto-Regular.ttf";
 #endif
 
-    // Defensive font loading: Try Roboto first
     std::ifstream f(robotoPath, std::ios::binary | std::ios::ate);
     if (f.good()) {
-        long size = f.tellg();
-        f.close();
-        if (size > 1000) { 
-            font = io.Fonts->AddFontFromFileTTF(robotoPath, 18.0f);
+        std::streamsize size = f.tellg();
+        f.seekg(0, std::ios::beg);
+        if (size > 1000) {
+            void* fontData = ImGui::MemAlloc((size_t)size);
+            if (f.read((char*)fontData, size)) {
+                ImFontConfig config;
+                config.FontDataOwnedByAtlas = true; // ImGui will free this memory
+                ImFont* robotoFont = io.Fonts->AddFontFromMemoryTTF(fontData, (int)size, 18.0f, &config);
+                if (robotoFont) {
+                    io.FontDefault = robotoFont; // Promote Roboto to default
+                    std::cout << "Successfully promoted Roboto to default font." << std::endl;
+                }
+            } else {
+                ImGui::MemFree(fontData);
+            }
         }
-    }
-
-    // Fallback: If Roboto failed, load the default font
-    if (!font) {
-        std::cerr << "Warning: Falling back to default font." << std::endl;
-        io.Fonts->AddFontDefault();
+        f.close();
     }
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
 #ifdef __EMSCRIPTEN__
