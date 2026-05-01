@@ -307,6 +307,7 @@ void DrawGraph(ImDrawList* drawList, ImVec2 offset, ImVec2 size) {
             int maxId = 0;
             for (auto const& [id, _] : positions) if (id > maxId) maxId = id;
             cityGraph.setNodePos(maxId + 1, mousePos.x - offset.x, mousePos.y - offset.y);
+            if(pathFound) Recompute();
         }
     }
 
@@ -316,7 +317,9 @@ void DrawGraph(ImDrawList* drawList, ImVec2 offset, ImVec2 size) {
             for (auto& [id, pos] : positions) {
                 if (sqrt(pow(mousePos.x - (pos.x+offset.x), 2) + pow(mousePos.y - (pos.y+offset.y), 2)) < 30.0f && id != draggingEdgeFrom) { 
                     std::string t = (currentCreationType == CreationType::ROAD) ? "road" : (currentCreationType == CreationType::METRO ? "metro" : "bus");
-                    cityGraph.addEdge(draggingEdgeFrom, id, 10.0, 5.0, 2.0, t); break; 
+                    cityGraph.addEdge(draggingEdgeFrom, id, 10.0, 5.0, 2.0, t); 
+                    if(pathFound) Recompute();
+                    break; 
                 }
             }
         }
@@ -328,7 +331,11 @@ void DrawGraph(ImDrawList* drawList, ImVec2 offset, ImVec2 size) {
         const char* tNames[] = {"road", "metro", "bus"}; static int tIdx = 0;
         for(int i=0; i<3; i++) if(activeEdge.type == tNames[i]) tIdx = i;
         if(ImGui::Combo("Type", &tIdx, tNames, 3)) activeEdge.type = tNames[tIdx];
-        if (ImGui::Button("Update")) { cityGraph.updateEdge(activeEdge.from, activeEdge.to, activeEdge.dist, activeEdge.time, activeEdge.cost, activeEdge.type); ImGui::CloseCurrentPopup(); }
+        if (ImGui::Button("Update")) { 
+            cityGraph.updateEdge(activeEdge.from, activeEdge.to, activeEdge.dist, activeEdge.time, activeEdge.cost, activeEdge.type); 
+            if(pathFound) Recompute();
+            ImGui::CloseCurrentPopup(); 
+        }
         ImGui::SameLine(); if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
     }
@@ -340,8 +347,16 @@ void main_loop() {
     ApplyTheme();
     ImGui_ImplOpenGL3_NewFrame(); ImGui_ImplSDL2_NewFrame(); ImGui::NewFrame();
     if (ImGui::IsKeyPressed(ImGuiKey_Delete) || ImGui::IsKeyPressed(ImGuiKey_Backspace)) {
-        if (selectedNode != -1) { cityGraph.removeNode(selectedNode); selectedNode = -1; pathFound = false; }
-        else if (selectedEdge.from != -1) { cityGraph.removeEdge(selectedEdge.from, selectedEdge.to); selectedEdge = {-1, -1}; pathFound = false; }
+        if (selectedNode != -1) { 
+            cityGraph.removeNode(selectedNode); 
+            selectedNode = -1; 
+            if(pathFound) Recompute(); 
+        }
+        else if (selectedEdge.from != -1) { 
+            cityGraph.removeEdge(selectedEdge.from, selectedEdge.to); 
+            selectedEdge = {-1, -1}; 
+            if(pathFound) Recompute(); 
+        }
     }
     ImGui::SetNextWindowPos(ImVec2(0, 0)); ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
     ImGui::Begin("Site", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
@@ -400,6 +415,7 @@ void main_loop() {
             int maxId = 0;
             for (auto const& [id, _] : cityGraph.getPositions()) if (id > maxId) maxId = id;
             cityGraph.setNodePos(maxId + 1, canvasW/2, canvasH/2);
+            if(pathFound) Recompute();
         }
         
         ImGui::Spacing();
