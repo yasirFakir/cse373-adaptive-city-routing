@@ -49,7 +49,7 @@ if(EMSCRIPTEN)
         "-sWASM=1"
         "-sALLOW_MEMORY_GROWTH=1"
         "-sNO_EXIT_RUNTIME=1"
-        "--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/assets@/assets"
+        "--preload-file assets@/assets"
     )
     
     # Ensure headers are found

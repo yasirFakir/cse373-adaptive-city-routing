@@ -587,44 +587,55 @@ int main(int, char**) {
     // 1. Load default font first (guaranteed to work, becomes default at index 0)
     io.Fonts->AddFontDefault();
 
-    // 2. Try to load Roboto defensively to avoid assertion crashes
-#ifdef __EMSCRIPTEN__
-    const char* robotoPath = "/assets/Roboto-Regular.ttf";
-#else
-    const char* robotoPath = "assets/Roboto-Regular.ttf";
-#endif
+    // 2. Try to load Roboto defensively
+    const char* fontPaths[] = { 
+        "/assets/Roboto-Regular.ttf", 
+        "assets/Roboto-Regular.ttf", 
+        "/Roboto-Regular.ttf",
+        "Roboto-Regular.ttf" 
+    };
 
-    std::ifstream f(robotoPath, std::ios::binary | std::ios::ate);
-    if (f.good()) {
-        std::streamsize size = f.tellg();
-        f.seekg(0, std::ios::beg);
-        if (size > 1000) {
-            void* fontData = ImGui::MemAlloc((size_t)size);
-            if (f.read((char*)fontData, size)) {
-                ImFontConfig config;
-                config.FontDataOwnedByAtlas = true; // ImGui will free this memory
-                ImFont* robotoFont = io.Fonts->AddFontFromMemoryTTF(fontData, (int)size, 18.0f, &config);
-                if (robotoFont) {
-                    io.FontDefault = robotoFont; // Promote Roboto to default
-                    std::cout << "Successfully promoted Roboto to default font." << std::endl;
+    for (const char* path : fontPaths) {
+        std::ifstream f(path, std::ios::binary | std::ios::ate);
+        if (f.good()) {
+            std::streamsize size = f.tellg();
+            f.seekg(0, std::ios::beg);
+            if (size > 1000) {
+                void* fontData = ImGui::MemAlloc((size_t)size);
+                if (f.read((char*)fontData, size)) {
+                    ImFontConfig config;
+                    config.FontDataOwnedByAtlas = true;
+                    ImFont* robotoFont = io.Fonts->AddFontFromMemoryTTF(fontData, (int)size, 18.0f, &config);
+                    if (robotoFont) {
+                        io.FontDefault = robotoFont;
+                        std::cout << "Successfully loaded Roboto from: " << path << std::endl;
+                        break; 
+                    }
+                } else {
+                    ImGui::MemFree(fontData);
                 }
-            } else {
-                ImGui::MemFree(fontData);
             }
+            f.close();
         }
-        f.close();
     }
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
-#ifdef __EMSCRIPTEN__
     ImGui_ImplOpenGL3_Init("#version 300 es");
 #else
     ImGui_ImplOpenGL3_Init("#version 130");
 #endif
-#ifdef __EMSCRIPTEN__
-    cityGraph.loadFromFile("/assets/city_map.txt");
-#else
-    cityGraph.loadFromFile("assets/city_map.txt");
-#endif
+    
+    // Robust map loading
+    const char* mapPaths[] = { "/assets/city_map.txt", "assets/city_map.txt", "/city_map.txt", "city_map.txt" };
+    bool mapLoaded = false;
+    for (const char* p : mapPaths) {
+        if (cityGraph.loadFromFile(p)) {
+            std::cout << "Successfully loaded map from: " << p << std::endl;
+            mapLoaded = true;
+            break;
+        }
+    }
+    if (!mapLoaded) std::cerr << "Warning: Could not load initial map from any path." << std::endl;
+
     cityGraph.applyCircleLayout(lastCanvasW/2, lastCanvasH/2, std::min(lastCanvasW, lastCanvasH) * 0.35f);
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(main_loop, 0, 1);
