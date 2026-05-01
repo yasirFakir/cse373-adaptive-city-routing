@@ -346,7 +346,7 @@ void main_loop() {
     while (SDL_PollEvent(&event)) { ImGui_ImplSDL2_ProcessEvent(&event); if (event.type == SDL_QUIT) exit(0); }
     ApplyTheme();
     ImGui_ImplOpenGL3_NewFrame(); ImGui_ImplSDL2_NewFrame(); ImGui::NewFrame();
-    if (ImGui::IsKeyPressed(ImGuiKey_Delete) || ImGui::IsKeyPressed(ImGuiKey_Backspace)) {
+    if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
         if (selectedNode != -1) { 
             cityGraph.removeNode(selectedNode); 
             selectedNode = -1; 

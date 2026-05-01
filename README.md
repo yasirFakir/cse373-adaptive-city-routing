@@ -1,68 +1,142 @@
-# Dijkstra Algorithm - Adaptive City Routing System
+# Dijkstra Algorithm - Adaptive Multi-Constraint City Routing System
 ### CSE 373: Design and Analysis of Algorithms Project
 
-An interactive, multi-constraint routing system that utilizes Dijkstra's algorithm to find optimal paths based on distance, time, and cost in a dynamic urban environment.
+An interactive, high-performance routing engine designed to visualize and solve complex pathfinding problems in urban environments. This system utilizes a modified **Dijkstra's Algorithm** to find optimal paths based on multiple constraints like distance, time, and cost, while providing real-time graph manipulation capabilities.
 
-## 🚀 Features
-- **Multi-Constraint Optimization:** Switch between Shortest Distance, Fastest Time, and Cheapest Route.
-- **Dynamic Filtering:** Toggle visibility and accessibility of specific nodes and transport modes (Road, Metro, Bus).
-- **Interactive Graph:** Add/delete nodes, drag to move nodes, and create edges in real-time.
-- **Cross-Platform:** Runs natively on Linux and via WebAssembly in modern browsers.
-- **Map Persistence:** Upload custom map files from your PC or download your created maps.
+---
 
-## 📂 Project Structure
+## 🚀 Key Features
+
+### 🛠️ Dynamic Graph Manipulation
+- **Real-time Editing:** Add nodes with double-click, move them via drag-and-drop, and create edges by dragging between nodes.
+- **Node & Edge Management:** Select any element and press the **Delete** key to remove it. Update edge weights (distance, time, cost) and transport types via a double-click context menu.
+- **Auto-Layout:** Instantly organize nodes using a circular layout for better visualization of complex networks.
+
+### 🛣️ Multi-Constraint Pathfinding
+- **Optimization Modes:** 
+  - **Shortest Distance:** Minimizes the physical length of the route.
+  - **Fastest Time:** Calculates the quickest path based on speed limits and traffic characteristics.
+  - **Cheapest Route:** Optimizes for travel cost (tolls, fuel, or fare).
+  - **Custom Weighted:** User-defined weights for distance, time, and cost.
+- **Intelligent Filtering:** Dynamically block specific nodes (e.g., "Under Construction") or entire transport modes (e.g., "Avoid Metro") and see the path update instantly.
+
+### 📊 Advanced Visualization
+- **Path Highlighting:** Clear visual feedback of the calculated route with total metrics (Dist/Time/Cost).
+- **Relaxation Table:** A detailed step-by-step breakdown of the algorithm's execution, showing node discovery and distance updates.
+- **Responsive UI:** Dark/Light mode support with a clean, modern interface powered by Dear ImGui.
+
+---
+
+## 💻 Tech Stack
+- **Language:** C++17
+- **GUI Framework:** [Dear ImGui](https://github.com/ocornut/imgui)
+- **Graphics & Windowing:** SDL2 & OpenGL 3.0
+- **Build System:** CMake
+- **Web Support:** Emscripten (WebAssembly)
+- **Utilities:** Zenity (Native file dialogs on Linux)
+
+---
+
+## 📂 File Structure
 ```text
 .
-├── assets/                    # Map data and project documentation
-│   ├── circular_map.txt
-│   ├── city_map.txt           # Default map
-│   ├── grid_map.txt
-│   └── test.txt
-├── src/                       # C++ Source Code
-│   ├── main.cpp               # GUI and App Logic (ImGui + SDL2)
-│   ├── graph.cpp/h            # Graph data structure implementation
-│   └── algorithms.cpp         # Dijkstra's Algorithm implementation
-├── web/                       # Web-specific files
-│   └── index.html             # Emscripten template
-├── CMakeLists.txt             # Build configuration
-└── README.md                  # Project documentation
+├── assets/                    # Map data, fonts, and documentation
+│   ├── city_map.txt           # Standard metropolitan map
+│   ├── circular_map.txt       # Example of symmetric layout
+│   └── Roboto-Regular.ttf     # Project font
+├── src/                       # Core C++ Logic
+│   ├── main.cpp               # UI Orchestration & Event Loop
+│   ├── graph.cpp / .h         # Graph Data Structure & File I/O
+│   ├── algorithms.cpp         # Dijkstra's Algorithm Implementation
+│   └── default_map.h          # Fallback map data
+├── web/                       # Deployment assets for WebAssembly
+└── CMakeLists.txt             # Cross-platform build configuration
 ```
 
-## 🎮 User Guide (Interaction)
-### Graph Controls
-- **Move Nodes:** Click and hold the **Left Mouse Button** on a node to drag it to a new position.
-- **Create Edges:** Click and hold the **Right Mouse Button** on a node, then drag the connection to another node to create a new road/metro/bus line.
-- **Select Items:** Single **Left Click** on a node or edge to select it for deletion.
-- **Delete Items:** Press the **Delete** or **Backspace** key to remove the currently selected node or edge.
-- **Edit Edge Properties:** **Double Click** on any edge to open a popup where you can modify its distance, time, cost, and transport type.
-- **Add New Nodes:** Use the **ADD NODE** button in the sidebar to spawn a new node on the canvas.
+---
 
-### Pathfinding
-1. Enter the **Start** and **End** node labels (e.g., A, B, C) in the input fields.
-2. Click **COMPUTE** to visualize the optimal paths.
-3. Use the **NODE FILTERS** and **TRANSPORT FILTERS** checklists to dynamically block specific routes.
+## ⚙️ Map File Format
+You can load custom maps using simple `.txt` files. Each line defines a directed edge:
+`[Source_ID] [Destination_ID] [Distance] [Time] [Cost] [Transport_Type]`
 
-## 🛠️ Build & Run
-
-### Native (Linux)
-**Dependencies:** `SDL2`, `OpenGL`, `Zenity` (for file dialogs).
-```bash
-mkdir build && cd build
-cmake ..
-make
-./dijkstra-algorithm
+**Example:**
+```text
+1 2 10.5 5 2.0 road
+2 3 15.0 10 5.0 metro
 ```
+*Note: Node labels (A, B, C...) are automatically mapped from their integer IDs (1=A, 2=B, etc.).*
 
-### Web (Emscripten)
-```bash
-emcmake cmake .. -DEMSCRIPTEN=ON
-make
-```
+---
 
-## 🧠 Algorithmic Implementation
-The core engine implements a modified Dijkstra's algorithm using a `std::priority_queue` for efficiency ($O(E \log V)$). It supports:
-- **Avoidance Sets:** Skip nodes or transport types during the relaxation step.
-- **Trace Visualization:** A step-by-step relaxation table showing how distances are updated across the graph.
+## 🎮 Controls Reference
+| Action | Instruction |
+| :--- | :--- |
+| **Add Node** | Double-click on empty space |
+| **Move Node** | Left-click and drag a node |
+| **Create Edge** | Right-click on a node and drag to another |
+| **Select Item** | Left-click on a node or edge |
+| **Delete Item** | Press the **Delete** key while an item is selected |
+| **Edit Edge** | Double-click on an existing edge |
+| **Pan/Zoom** | Use mouse wheel and middle-click drag (planned) |
 
-## 👥 Contributors
-- **Yasir** - Lead Developer & Algorithm Design
+---
+
+## 🛠️ Installation & Build
+
+### Prerequisites (Linux)
+Ensure you have the following installed:
+- `cmake`
+- `build-essential`
+- `libsdl2-dev`
+- `libgl1-mesa-dev`
+- `zenity` (for file saving/loading)
+
+### Build Steps (Native)
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/yourusername/dijkstra-algorithm.git
+   cd dijkstra-algorithm
+   ```
+2. **Compile:**
+   ```bash
+   mkdir build && cd build
+   cmake ..
+   make -j$(nproc)
+   ```
+3. **Run:**
+   ```bash
+   ./dijkstra-algorithm
+   ```
+
+### Build Steps (WebAssembly via Emscripten)
+1. **Setup Emscripten environment.**
+2. **Compile:**
+   ```bash
+   mkdir build-web && cd build-web
+   emcmake cmake .. -DEMSCRIPTEN=ON
+   make
+   ```
+3. **Serve:** Use a local web server (e.g., `python3 -m http.server`) to view `index.html`.
+
+---
+
+## 📄 Documentation
+Comprehensive project details, including complexity analysis and architectural diagrams, can be found in:
+- `CSE373_Semester Project.pdf` (Project Report)
+- `docs/gemini.md` (Developer Notes)
+
+---
+
+## 🧠 Behind the Algorithm
+The system uses a priority-queue based Dijkstra implementation ($O(E \log V)$).
+When a path is computed:
+1. It checks the **Avoidance List** to skip disabled nodes/edges.
+2. It calculates the weight for each edge based on the selected **RouteMode**.
+3. It stores each **Relaxation Step** to allow the UI to render the algorithmic trace.
+
+---
+
+## 📜 License & Acknowledgments
+Created for the **CSE 373** course. Special thanks to the Dear ImGui and SDL2 communities.
+
+**Contributors:** Yasir
