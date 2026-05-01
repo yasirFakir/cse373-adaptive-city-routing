@@ -454,7 +454,13 @@ void main_loop() {
             ImGui::Spacing(); ImGui::TextColored(isDarkMode?ImVec4(1,0.4f,0.4f,1):ImVec4(0.8f,0,0,1), "NODE FILTERS");
             if (ImGui::BeginChild("NodeFilters", ImVec2(rightPanelWidth, 120), true)) {
                 auto allN = cityGraph.getAllNodes(); std::sort(allN.begin(), allN.end());
-                for (int n : allN) { bool act = !globallyAvoidedNodes.count(n); if (ImGui::Checkbox(Graph::idToLabel(n).c_str(), &act)) { if(!act) globallyAvoidedNodes.insert(n); else globallyAvoidedNodes.erase(n); if(pathFound) Recompute(); } }
+                for (int n : allN) { 
+                    bool act = !globallyAvoidedNodes.count(n); 
+                    if (ImGui::Checkbox(Graph::idToLabel(n).c_str(), &act)) { 
+                        if(!act) globallyAvoidedNodes.insert(n); else globallyAvoidedNodes.erase(n); 
+                        if(pathFound) Recompute(); 
+                    } 
+                }
                 ImGui::EndChild();
             }
             ImGui::Spacing(); ImGui::TextColored(isDarkMode?ImVec4(1,0.4f,0.4f,1):ImVec4(0.8f,0,0,1), "TRANSPORT");
@@ -462,7 +468,10 @@ void main_loop() {
             if (ImGui::BeginChild("TypeFilters", ImVec2(rightPanelWidth, 115), true, ImGuiWindowFlags_NoScrollbar)) {
                 auto TC = [&](const char* l, const char* t, ImVec4 c) {
                     bool act = !globallyAvoidedTypes.count(t); ImGui::PushStyleColor(ImGuiCol_Text, c);
-                    if (ImGui::Checkbox(l, &act)) { if (!act) globallyAvoidedTypes.insert(t); else globallyAvoidedTypes.erase(t); if (pathFound) Recompute(); }
+                    if (ImGui::Checkbox(l, &act)) { 
+                        if (!act) globallyAvoidedTypes.insert(t); else globallyAvoidedTypes.erase(t); 
+                        if(pathFound) Recompute(); 
+                    }
                     ImGui::PopStyleColor();
                 };
                 TC("Road", "road", ImVec4(0,0.6f,1,1)); 
