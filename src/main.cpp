@@ -151,7 +151,7 @@ void Recompute() {
         results[0] = findPath(cityGraph, sId, eId, RouteMode::SHORTEST_DISTANCE, {}, globallyAvoidedNodes, globallyAvoidedTypes); 
         results[1] = findPath(cityGraph, sId, eId, RouteMode::FASTEST_TIME, {}, globallyAvoidedNodes, globallyAvoidedTypes); 
         results[2] = findPath(cityGraph, sId, eId, RouteMode::CHEAPEST_ROUTE, {}, globallyAvoidedNodes, globallyAvoidedTypes); 
-        pathFound = true; 
+        if (results[0].found || results[1].found || results[2].found) pathFound = true;
     }
 }
 
