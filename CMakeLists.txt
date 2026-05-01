@@ -49,7 +49,6 @@ if(EMSCRIPTEN)
         "-sWASM=1"
         "-sALLOW_MEMORY_GROWTH=1"
         "-sNO_EXIT_RUNTIME=1"
-        "--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/assets@/assets"
     )
     
     # Ensure headers are found

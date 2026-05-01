@@ -32,6 +32,9 @@
 #include <array>
 #endif
 
+#include "roboto_font.h"
+#include "default_map.h"
+
 SDL_Window* window = nullptr;
 SDL_GLContext gl_context = nullptr;
 Graph cityGraph;
@@ -579,51 +582,22 @@ int main(int, char**) {
     SDL_Init(SDL_INIT_VIDEO);
 #ifdef __EMSCRIPTEN__
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3); SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-    // Diagnostics: Print virtual FS structure to browser console
-    emscripten_run_script("console.log('--- FS Diagnostic ---');");
-    emscripten_run_script("try { console.log('Root:', FS.readdir('/')); } catch(e) {}");
-    emscripten_run_script("try { if(FS.analyzePath('/assets').exists) console.log('/assets content:', FS.readdir('/assets')); else console.log('/assets directory NOT found'); } catch(e) {}");
-    emscripten_run_script("try { if(FS.analyzePath('/home/web_user').exists) console.log('/home/web_user content:', FS.readdir('/home/web_user')); } catch(e) {}");
 #endif
     window = SDL_CreateWindow("dijkstra-algorithm", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1440, 900, SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE|SDL_WINDOW_ALLOW_HIGHDPI);
     gl_context = SDL_GL_CreateContext(window); IMGUI_CHECKVERSION(); ImGui::CreateContext(); 
     ImGuiIO& io = ImGui::GetIO();
     
-    // 1. Load default font first (guaranteed to work, becomes default at index 0)
+    // 1. Load default font first as backup
     io.Fonts->AddFontDefault();
 
-    // 2. Try to load Roboto defensively
-    const char* fontPaths[] = { 
-        "assets/Roboto-Regular.ttf", 
-        "/assets/Roboto-Regular.ttf", 
-        "assets/assets/Roboto-Regular.ttf",
-        "/Roboto-Regular.ttf",
-        "Roboto-Regular.ttf" 
-    };
-
-    for (const char* path : fontPaths) {
-        std::ifstream f(path, std::ios::binary | std::ios::ate);
-        if (f.good()) {
-            std::streamsize size = f.tellg();
-            f.seekg(0, std::ios::beg);
-            if (size > 1000) {
-                void* fontData = ImGui::MemAlloc((size_t)size);
-                if (f.read((char*)fontData, size)) {
-                    ImFontConfig config;
-                    config.FontDataOwnedByAtlas = true;
-                    ImFont* robotoFont = io.Fonts->AddFontFromMemoryTTF(fontData, (int)size, 18.0f, &config);
-                    if (robotoFont) {
-                        io.FontDefault = robotoFont;
-                        std::cout << "Successfully loaded Roboto from: " << path << std::endl;
-                        break; 
-                    }
-                } else {
-                    ImGui::MemFree(fontData);
-                }
-            }
-            f.close();
-        }
+    // 2. Load Roboto from embedded array (100% reliable)
+    {
+        ImFontConfig config;
+        config.FontDataOwnedByAtlas = false; // Data is in static memory
+        ImFont* robotoFont = io.Fonts->AddFontFromMemoryTTF(assets_Roboto_Regular_ttf, assets_Roboto_Regular_ttf_len, 18.0f, &config);
+        if (robotoFont) io.FontDefault = robotoFont;
     }
+
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
 #ifdef __EMSCRIPTEN__
     ImGui_ImplOpenGL3_Init("#version 300 es");
@@ -631,23 +605,8 @@ int main(int, char**) {
     ImGui_ImplOpenGL3_Init("#version 130");
 #endif
     
-    // Robust map loading
-    const char* mapPaths[] = { 
-        "assets/city_map.txt", 
-        "/assets/city_map.txt", 
-        "assets/assets/city_map.txt",
-        "/city_map.txt", 
-        "city_map.txt" 
-    };
-    bool mapLoaded = false;
-    for (const char* p : mapPaths) {
-        if (cityGraph.loadFromFile(p)) {
-            std::cout << "Successfully loaded map from: " << p << std::endl;
-            mapLoaded = true;
-            break;
-        }
-    }
-    if (!mapLoaded) std::cerr << "Warning: Could not load initial map from any path." << std::endl;
+    // 3. Load Map from embedded array (100% reliable)
+    cityGraph.loadFromData(std::string((char*)assets_city_map_txt, assets_city_map_txt_len));
 
     cityGraph.applyCircleLayout(lastCanvasW/2, lastCanvasH/2, std::min(lastCanvasW, lastCanvasH) * 0.35f);
 #ifdef __EMSCRIPTEN__

@@ -101,6 +101,28 @@ bool Graph::loadFromFile(const std::string& filename) {
     return true;
 }
 
+bool Graph::loadFromData(const std::string& data) {
+    std::stringstream ss_data(data);
+    nodeIds.clear(); adj.clear(); nodePositions.clear();
+    std::string line;
+    while (std::getline(ss_data, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        std::stringstream ss(line);
+        std::string uStr, vStr, type = "road"; 
+        double dist, time, cost;
+        if (ss >> uStr >> vStr >> dist >> time >> cost) {
+            if (!(ss >> type)) type = "road"; 
+            auto parseToken = [](std::string s) {
+                if (s.empty()) return 0;
+                if (std::isdigit((unsigned char)s[0])) return std::stoi(s);
+                return labelToId(s);
+            };
+            addEdge(parseToken(uStr), parseToken(vStr), dist, time, cost, type);
+        }
+    }
+    return true;
+}
+
 bool Graph::saveToFile(const std::string& filename) {
     std::ofstream file(filename);
     if (!file.is_open()) return false;

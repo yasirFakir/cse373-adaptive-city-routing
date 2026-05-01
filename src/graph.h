@@ -56,6 +56,7 @@ public:
     void removeEdge(int from, int to);
     void removeNode(int id);
     bool loadFromFile(const std::string& filename);
+    bool loadFromData(const std::string& data); // New: Load from embedded data
     bool saveToFile(const std::string& filename); // New: Save current map
     const std::vector<Edge>& getNeighbors(int node) const;
     bool hasNode(int node) const;
