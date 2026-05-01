@@ -579,6 +579,10 @@ int main(int, char**) {
     SDL_Init(SDL_INIT_VIDEO);
 #ifdef __EMSCRIPTEN__
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3); SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    // Diagnostics: Print virtual FS structure to browser console
+    emscripten_run_script("console.log('--- FS Diagnostic ---');");
+    emscripten_run_script("try { console.log('Root:', FS.readdir('/')); } catch(e) {}");
+    emscripten_run_script("try { if(FS.analyzePath('/assets').exists) console.log('/assets:', FS.readdir('/assets')); } catch(e) {}");
 #endif
     window = SDL_CreateWindow("dijkstra-algorithm", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1440, 900, SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE|SDL_WINDOW_ALLOW_HIGHDPI);
     gl_context = SDL_GL_CreateContext(window); IMGUI_CHECKVERSION(); ImGui::CreateContext(); 

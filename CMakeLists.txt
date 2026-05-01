@@ -49,7 +49,7 @@ if(EMSCRIPTEN)
         "-sWASM=1"
         "-sALLOW_MEMORY_GROWTH=1"
         "-sNO_EXIT_RUNTIME=1"
-        "--preload-file assets"
+        "--embed-file assets"
     )
     
     # Ensure headers are found
