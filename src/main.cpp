@@ -589,8 +589,9 @@ int main(int, char**) {
 
     // 2. Try to load Roboto defensively
     const char* fontPaths[] = { 
-        "/assets/Roboto-Regular.ttf", 
         "assets/Roboto-Regular.ttf", 
+        "/assets/Roboto-Regular.ttf", 
+        "assets/assets/Roboto-Regular.ttf",
         "/Roboto-Regular.ttf",
         "Roboto-Regular.ttf" 
     };
@@ -626,7 +627,13 @@ int main(int, char**) {
 #endif
     
     // Robust map loading
-    const char* mapPaths[] = { "/assets/city_map.txt", "assets/city_map.txt", "/city_map.txt", "city_map.txt" };
+    const char* mapPaths[] = { 
+        "assets/city_map.txt", 
+        "/assets/city_map.txt", 
+        "assets/assets/city_map.txt",
+        "/city_map.txt", 
+        "city_map.txt" 
+    };
     bool mapLoaded = false;
     for (const char* p : mapPaths) {
         if (cityGraph.loadFromFile(p)) {
