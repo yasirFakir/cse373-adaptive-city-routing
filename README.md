@@ -68,16 +68,23 @@ You can load custom maps using simple `.txt` files. Each line defines a directed
 
 ---
 
-## 🎮 Controls Reference
-| Action | Instruction |
-| :--- | :--- |
-| **Add Node** | Double-click on empty space |
-| **Move Node** | Left-click and drag a node |
-| **Create Edge** | Right-click on a node and drag to another |
-| **Select Item** | Left-click on a node or edge |
-| **Delete Item** | Press the **Delete** key while an item is selected |
-| **Edit Edge** | Double-click on an existing edge |
-| **Pan/Zoom** | Use mouse wheel and middle-click drag (planned) |
+## 🕹️ How to Use
+
+Follow these steps to interact with the routing system and visualize Dijkstra's algorithm:
+
+- **Select Node/Edge:** Left-click on any element to select it.
+- **Add a New Node:** Double-click on any empty space on the map.
+- **Move Nodes:** Left-click and drag a node to reposition it.
+- **Create an Edge:** Right-click on a node and drag the cursor to another node to connect them.
+- **Edit Edge Weights:** Double-click on an existing edge to open the editor and update its **Distance**, **Time**, or **Cost**.
+- **Delete Elements:** Select a node or edge and press the **Delete** key.
+- **Find Best Path:** 
+  1. Set the **Start** and **End** node labels in the sidebar.
+  2. Click the **COMPUTE** button to calculate the optimal route.
+- **Filter & Constraints:** 
+  - Toggle specific **Nodes** in the filter list to mark them as "Avoid" (e.g., closed roads).
+  - Toggle **Transport Modes** (Road, Metro, Bus) to exclude them from the calculation.
+- **Get Help:** Click the **HELP** button in the top-right corner of the interface at any time.
 
 ---
 
@@ -91,7 +98,14 @@ Ensure you have the following installed:
 - `libgl1-mesa-dev`
 - `zenity` (for file saving/loading)
 
-### Build Steps (Native)
+### Prerequisites (Windows)
+1. **Visual Studio 2022:** Install with the "Desktop development with C++" workload.
+2. **CMake:** Download and install from [cmake.org](https://cmake.org/download/).
+3. **SDL2 Development Library:**
+   - Download the `SDL2-devel-2.x.x-VC.zip` from [GitHub Releases](https://github.com/libsdl-org/SDL/releases).
+   - Extract it to a known location (e.g., `C:/SDL2`).
+
+### Build Steps (Native - Linux)
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/yourusername/dijkstra-algorithm.git
@@ -107,6 +121,25 @@ Ensure you have the following installed:
    ```bash
    ./dijkstra-algorithm
    ```
+
+### Build Steps (Native - Windows)
+1. **Open a terminal (PowerShell or CMD).**
+2. **Clone the repository:**
+   ```bash
+   git clone https://github.com/yourusername/dijkstra-algorithm.git
+   cd dijkstra-algorithm
+   ```
+3. **Configure and Build:**
+   ```bash
+   mkdir build
+   cd build
+   cmake .. -DSDL2_DIR="C:/path/to/SDL2/cmake"
+   cmake --build . --config Release
+   ```
+   *Note: Replace `C:/path/to/SDL2/cmake` with the actual path to the `cmake` folder inside your extracted SDL2 directory.*
+4. **Run:**
+   - Copy `SDL2.dll` from the `lib/x64` folder of your SDL2 directory to the `Release` folder in your build directory.
+   - Run `Release/dijkstra-algorithm.exe`.
 
 ### Build Steps (WebAssembly via Emscripten)
 1. **Setup Emscripten environment.**
