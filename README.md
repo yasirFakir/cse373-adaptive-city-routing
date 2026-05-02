@@ -108,7 +108,7 @@ Ensure you have the following installed:
 ### Build Steps (Native - Linux)
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/dijkstra-algorithm.git
+   git clone https://github.com/yasirFakir/dijkstra-algorithm.git
    cd dijkstra-algorithm
    ```
 2. **Compile:**
@@ -126,7 +126,7 @@ Ensure you have the following installed:
 1. **Open a terminal (PowerShell or CMD).**
 2. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/dijkstra-algorithm.git
+   git clone https://github.com/yasirFakir/dijkstra-algorithm.git
    cd dijkstra-algorithm
    ```
 3. **Configure and Build:**
